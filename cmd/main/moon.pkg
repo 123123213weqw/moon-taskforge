@@ -1,0 +1,9 @@
+supported_targets = "js"
+
+import {
+  "123123213weqw/moon_taskforge" @engine,
+  "moonbitlang/core/json",
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")
