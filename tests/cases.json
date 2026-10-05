@@ -1,0 +1,274 @@
+[
+  {
+    "name": "initial ready wave",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        },
+        {
+          "id": "b",
+          "deps": [
+            "a"
+          ],
+          "command": [
+            "echo",
+            "b"
+          ],
+          "inputs": [
+            "a.txt"
+          ],
+          "outputs": [
+            "b.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h"
+      }
+    },
+    "expected": {
+      "ready/0/id": "a",
+      "tasks/1/status": "waiting",
+      "terminal": false
+    },
+    "error": false
+  },
+  {
+    "name": "failure blocks downstream",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        },
+        {
+          "id": "b",
+          "deps": [
+            "a"
+          ],
+          "command": [
+            "echo",
+            "b"
+          ],
+          "inputs": [
+            "a.txt"
+          ],
+          "outputs": [
+            "b.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h"
+      },
+      "completed": {
+        "a": "failed"
+      }
+    },
+    "expected": {
+      "tasks/0/status": "failed",
+      "tasks/1/status": "blocked",
+      "terminal": true,
+      "success": false
+    },
+    "error": false
+  },
+  {
+    "name": "missing input fails",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        },
+        {
+          "id": "b",
+          "deps": [
+            "a"
+          ],
+          "command": [
+            "echo",
+            "b"
+          ],
+          "inputs": [
+            "a.txt"
+          ],
+          "outputs": [
+            "b.txt"
+          ]
+        }
+      ]
+    },
+    "expected": {
+      "tasks/0/status": "failed",
+      "tasks/1/status": "blocked",
+      "terminal": true
+    },
+    "error": false
+  },
+  {
+    "name": "topological cycle",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "deps": [
+            "b"
+          ],
+          "command": [
+            "x"
+          ]
+        },
+        {
+          "id": "b",
+          "deps": [
+            "a"
+          ],
+          "command": [
+            "x"
+          ]
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "output conflict",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "outputs": [
+            "same"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "x"
+          ],
+          "outputs": [
+            "same"
+          ]
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "unsafe inputs",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "inputs": [
+            "../x"
+          ]
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "producer dependency required",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "outputs": [
+            "a"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "x"
+          ],
+          "inputs": [
+            "a"
+          ]
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "concurrency bound",
+    "request": {
+      "tasks": [
+        {
+          "id": "0",
+          "command": [
+            "x"
+          ]
+        },
+        {
+          "id": "1",
+          "command": [
+            "x"
+          ]
+        },
+        {
+          "id": "2",
+          "command": [
+            "x"
+          ]
+        },
+        {
+          "id": "3",
+          "command": [
+            "x"
+          ]
+        }
+      ],
+      "concurrency": 2
+    },
+    "expected": {
+      "tasks/2/status": "waiting",
+      "ready/1/id": "1"
+    },
+    "error": false
+  }
+]

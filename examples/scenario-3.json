@@ -1,0 +1,33 @@
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "in.txt"
+      ],
+      "outputs": [
+        "a.txt"
+      ]
+    },
+    {
+      "id": "b",
+      "deps": [
+        "a"
+      ],
+      "command": [
+        "echo",
+        "b"
+      ],
+      "inputs": [
+        "a.txt"
+      ],
+      "outputs": [
+        "b.txt"
+      ]
+    }
+  ]
+}
