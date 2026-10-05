@@ -1,0 +1,3 @@
+# Version 0.1.0 boundaries
+
+Commands are argv arrays with shell=false. This is a local executor, not a security sandbox: supplied commands have the current user's rights. Cache identity includes declared inputs and explicitly supplied environment; undeclared files, executable changes and inherited environment are not hermetic. Tasks without outputs always execute. Journals record results but interrupted tasks are re-executed; side effects should be idempotent. Killing a task targets its direct child process, not every grandchild. Output diagnostics are capped at 64 KiB; cache/journal files can contain explicit environment values. Concurrent hostile workspace mutation is not isolated.
