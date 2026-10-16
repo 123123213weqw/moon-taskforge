@@ -39,7 +39,8 @@ pub fn Value::stringify(self : Value) -> String {
 }
 
 ///|
-fn parse_value(source : StringView) -> Value raise {
+/// Parses JSON text into a semantic value.
+pub fn parse(source : StringView) -> Value raise {
   from_json(@json.parse(source))
 }
 
