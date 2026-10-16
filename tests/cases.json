@@ -18,12 +18,12 @@
         },
         {
           "id": "b",
-          "deps": [
-            "a"
-          ],
           "command": [
             "echo",
             "b"
+          ],
+          "deps": [
+            "a"
           ],
           "inputs": [
             "a.txt"
@@ -39,10 +39,19 @@
     },
     "expected": {
       "ready/0/id": "a",
+      "tasks/0/reason": "no cache entry",
       "tasks/1/status": "waiting",
-      "terminal": false
+      "tasks/1/reason": "waiting for: a",
+      "terminal": false,
+      "summary/ready": [
+        "a"
+      ],
+      "summary/waiting": [
+        "b"
+      ]
     },
-    "error": false
+    "error": false,
+    "note": "Tasks are reported in execution order. The first wave contains every task whose dependencies are satisfied, up to the concurrency bound; each task carries the reason for its status."
   },
   {
     "name": "failure blocks downstream",
@@ -63,12 +72,12 @@
         },
         {
           "id": "b",
-          "deps": [
-            "a"
-          ],
           "command": [
             "echo",
             "b"
+          ],
+          "deps": [
+            "a"
           ],
           "inputs": [
             "a.txt"
@@ -88,10 +97,16 @@
     "expected": {
       "tasks/0/status": "failed",
       "tasks/1/status": "blocked",
+      "tasks/1/reason": "dependency failed: a",
       "terminal": true,
-      "success": false
+      "success": false,
+      "summary/rerun": [
+        "a",
+        "b"
+      ]
     },
-    "error": false
+    "error": false,
+    "note": "rerun lists the failed and blocked tasks that the next run will attempt."
   },
   {
     "name": "missing input fails",
@@ -112,12 +127,12 @@
         },
         {
           "id": "b",
-          "deps": [
-            "a"
-          ],
           "command": [
             "echo",
             "b"
+          ],
+          "deps": [
+            "a"
           ],
           "inputs": [
             "a.txt"
@@ -130,6 +145,7 @@
     },
     "expected": {
       "tasks/0/status": "failed",
+      "tasks/0/reason": "missing input: in.txt",
       "tasks/1/status": "blocked",
       "terminal": true
     },
@@ -141,20 +157,20 @@
       "tasks": [
         {
           "id": "a",
-          "deps": [
-            "b"
-          ],
           "command": [
             "x"
+          ],
+          "deps": [
+            "b"
           ]
         },
         {
           "id": "b",
-          "deps": [
-            "a"
-          ],
           "command": [
             "x"
+          ],
+          "deps": [
+            "a"
           ]
         }
       ]
@@ -182,6 +198,61 @@
           ],
           "outputs": [
             "same"
+          ]
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "case-insensitive output conflict",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "outputs": [
+            "Out.txt"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "x"
+          ],
+          "outputs": [
+            "out.txt"
+          ]
+        }
+      ]
+    },
+    "expected": {},
+    "error": true,
+    "note": "Output ownership is compared case-insensitively so the graph is valid on case-insensitive file systems too."
+  },
+  {
+    "name": "nested output conflict",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "outputs": [
+            "dist"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "x"
+          ],
+          "outputs": [
+            "dist/index.html"
           ]
         }
       ]
@@ -235,6 +306,85 @@
     "error": true
   },
   {
+    "name": "unknown dependency",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "deps": [
+            "ghost"
+          ]
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "empty command",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": []
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "invalid timeout",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "timeout_ms": 0
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "invalid retries",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "retries": 11
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "invalid concurrency",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ]
+        }
+      ],
+      "concurrency": 0
+    },
+    "expected": {},
+    "error": true
+  },
+  {
     "name": "concurrency bound",
     "request": {
       "tasks": [
@@ -267,8 +417,677 @@
     },
     "expected": {
       "tasks/2/status": "waiting",
+      "tasks/2/reason": "concurrency limit reached",
       "ready/1/id": "1"
     },
     "error": false
+  },
+  {
+    "name": "deterministic order by id",
+    "request": {
+      "tasks": [
+        {
+          "id": "b",
+          "command": [
+            "x"
+          ]
+        },
+        {
+          "id": "10",
+          "command": [
+            "x"
+          ]
+        },
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ]
+        },
+        {
+          "id": "9",
+          "command": [
+            "x"
+          ]
+        }
+      ]
+    },
+    "expected": {
+      "tasks/0/id": "10",
+      "tasks/1/id": "9",
+      "tasks/2/id": "a",
+      "tasks/3/id": "b"
+    },
+    "error": false,
+    "note": "Independent tasks are ordered by id in UTF-16 code unit order, so plans are reproducible."
+  },
+  {
+    "name": "cache hit verified",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h",
+        "a.txt": "ha"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 1,
+            "command": [
+              "echo",
+              "a"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "outputs": [
+              "a.txt"
+            ],
+            "environment": {},
+            "dependencies": {}
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      }
+    },
+    "expected": {
+      "tasks/0/status": "cached",
+      "tasks/0/reason": "fingerprint and outputs verified",
+      "terminal": true,
+      "success": true,
+      "cache/a/outputs/a.txt": "ha"
+    },
+    "error": false,
+    "note": "A cache entry is reused only when the fingerprint matches and every declared output still has the recorded digest."
+  },
+  {
+    "name": "input change invalidates",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h2",
+        "a.txt": "ha"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 1,
+            "command": [
+              "echo",
+              "a"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "outputs": [
+              "a.txt"
+            ],
+            "environment": {},
+            "dependencies": {}
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      }
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "tasks/0/reason": "fingerprint changed: inputs"
+    },
+    "error": false
+  },
+  {
+    "name": "command change invalidates",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "changed"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h",
+        "a.txt": "ha"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 1,
+            "command": [
+              "echo",
+              "a"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "outputs": [
+              "a.txt"
+            ],
+            "environment": {},
+            "dependencies": {}
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      }
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "tasks/0/reason": "fingerprint changed: command"
+    },
+    "error": false
+  },
+  {
+    "name": "environment change invalidates",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h",
+        "a.txt": "ha"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 1,
+            "command": [
+              "echo",
+              "a"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "outputs": [
+              "a.txt"
+            ],
+            "environment": {},
+            "dependencies": {}
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      },
+      "environment": {
+        "MODE": "release"
+      }
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "tasks/0/reason": "fingerprint changed: environment"
+    },
+    "error": false
+  },
+  {
+    "name": "forged cache outputs rejected",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h",
+        "a.txt": "tampered"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 1,
+            "command": [
+              "echo",
+              "a"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "outputs": [
+              "a.txt"
+            ],
+            "environment": {},
+            "dependencies": {}
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      }
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "tasks/0/reason": "outputs changed"
+    },
+    "error": false,
+    "note": "A cache entry whose recorded output digest no longer matches the file is not trusted; the task is executed again."
+  },
+  {
+    "name": "outputs missing reruns",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 1,
+            "command": [
+              "echo",
+              "a"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "outputs": [
+              "a.txt"
+            ],
+            "environment": {},
+            "dependencies": {}
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      }
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "tasks/0/reason": "outputs missing"
+    },
+    "error": false
+  },
+  {
+    "name": "no outputs always runs",
+    "request": {
+      "tasks": [
+        {
+          "id": "lint",
+          "command": [
+            "echo",
+            "lint"
+          ],
+          "inputs": [
+            "in.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h"
+      }
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "tasks/0/reason": "no outputs declared"
+    },
+    "error": false
+  },
+  {
+    "name": "transitive invalidation",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "echo",
+            "b"
+          ],
+          "deps": [
+            "a"
+          ],
+          "inputs": [
+            "a.txt"
+          ],
+          "outputs": [
+            "b.txt"
+          ]
+        },
+        {
+          "id": "c",
+          "command": [
+            "echo",
+            "c"
+          ],
+          "deps": [
+            "b"
+          ],
+          "inputs": [
+            "b.txt"
+          ],
+          "outputs": [
+            "c.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h2",
+        "a.txt": "ha",
+        "b.txt": "hb",
+        "c.txt": "hc"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 1,
+            "command": [
+              "echo",
+              "a"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "outputs": [
+              "a.txt"
+            ],
+            "environment": {},
+            "dependencies": {}
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      }
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "tasks/0/reason": "fingerprint changed: inputs",
+      "tasks/1/status": "waiting",
+      "tasks/1/reason": "waiting for: a",
+      "tasks/2/reason": "waiting for: b",
+      "terminal": false
+    },
+    "error": false,
+    "note": "Dependents cannot be judged until the changed producer has run again; their fingerprints include the producer's new fingerprint."
+  },
+  {
+    "name": "paths with spaces",
+    "request": {
+      "tasks": [
+        {
+          "id": "render",
+          "command": [
+            "render"
+          ],
+          "inputs": [
+            "my input.txt"
+          ],
+          "outputs": [
+            "out dir/result.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "my input.txt": "h"
+      }
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "ready/0/outputs/0": "out dir/result.txt"
+    },
+    "error": false
+  },
+  {
+    "name": "summary groups",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "echo",
+            "b"
+          ]
+        },
+        {
+          "id": "c",
+          "command": [
+            "echo",
+            "c"
+          ],
+          "deps": [
+            "b"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h",
+        "a.txt": "ha"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 1,
+            "command": [
+              "echo",
+              "a"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "outputs": [
+              "a.txt"
+            ],
+            "environment": {},
+            "dependencies": {}
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      },
+      "completed": {
+        "b": "failed"
+      }
+    },
+    "expected": {
+      "summary/cached": [
+        "a"
+      ],
+      "summary/failed": [
+        "b"
+      ],
+      "summary/blocked": [
+        "c"
+      ],
+      "summary/rerun": [
+        "b",
+        "c"
+      ],
+      "terminal": true,
+      "success": false
+    },
+    "error": false
+  },
+  {
+    "name": "environment values must be strings",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ]
+        }
+      ],
+      "environment": {
+        "N": 1
+      }
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "hash values must be strings",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": 1
+      }
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "invalid completed status",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ]
+        }
+      ],
+      "completed": {
+        "a": "done"
+      }
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "name": "success requires verified outputs",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h"
+      },
+      "completed": {
+        "a": "success"
+      }
+    },
+    "expected": {},
+    "error": true,
+    "note": "An executor may only report success after the declared outputs exist; the planner refuses inconsistent reports."
   }
 ]

@@ -1,0 +1,32 @@
+{
+  "concurrency": 3,
+  "tasks": [
+    {
+      "id": "render",
+      "command": ["node", "tools/render.js"],
+      "inputs": ["docs/intro.md", "docs/guide.md", "tools/render.js"],
+      "outputs": ["site/intro.html", "site/guide.html"]
+    },
+    {
+      "id": "index",
+      "deps": ["render"],
+      "command": ["node", "tools/index.js"],
+      "inputs": ["site/intro.html", "site/guide.html", "tools/index.js"],
+      "outputs": ["site/index.html"]
+    },
+    {
+      "id": "linkcheck",
+      "deps": ["render"],
+      "command": ["node", "tools/linkcheck.js"],
+      "inputs": ["site/intro.html", "site/guide.html", "tools/linkcheck.js"],
+      "outputs": ["reports/links.txt"]
+    },
+    {
+      "id": "package",
+      "deps": ["index", "linkcheck"],
+      "command": ["node", "tools/package.js"],
+      "inputs": ["site/index.html", "site/intro.html", "site/guide.html", "reports/links.txt", "tools/package.js"],
+      "outputs": ["dist/site.bundle"]
+    }
+  ]
+}

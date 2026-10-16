@@ -1,0 +1,124 @@
+{
+  "concurrency": 2,
+  "tasks": [
+    {
+      "id": "thumb-1",
+      "command": [
+        "node",
+        "tools/process.js",
+        "1"
+      ],
+      "inputs": [
+        "assets/1.txt",
+        "tools/process.js"
+      ],
+      "outputs": [
+        "out/1.thumb"
+      ]
+    },
+    {
+      "id": "thumb-2",
+      "command": [
+        "node",
+        "tools/process.js",
+        "2"
+      ],
+      "inputs": [
+        "assets/2.txt",
+        "tools/process.js"
+      ],
+      "outputs": [
+        "out/2.thumb"
+      ]
+    },
+    {
+      "id": "thumb-3",
+      "command": [
+        "node",
+        "tools/process.js",
+        "3"
+      ],
+      "inputs": [
+        "assets/3.txt",
+        "tools/process.js"
+      ],
+      "outputs": [
+        "out/3.thumb"
+      ]
+    },
+    {
+      "id": "thumb-4",
+      "command": [
+        "node",
+        "tools/process.js",
+        "4"
+      ],
+      "inputs": [
+        "assets/4.txt",
+        "tools/process.js"
+      ],
+      "outputs": [
+        "out/4.thumb"
+      ],
+      "timeout_ms": 300,
+      "retries": 1
+    },
+    {
+      "id": "thumb-5",
+      "command": [
+        "node",
+        "tools/process.js",
+        "5"
+      ],
+      "inputs": [
+        "assets/5.txt",
+        "tools/process.js"
+      ],
+      "outputs": [
+        "out/5.thumb"
+      ]
+    },
+    {
+      "id": "thumb-cover-art",
+      "command": [
+        "node",
+        "tools/process.js",
+        "cover art"
+      ],
+      "inputs": [
+        "assets/cover art.txt",
+        "tools/process.js"
+      ],
+      "outputs": [
+        "out/cover art.thumb"
+      ]
+    },
+    {
+      "id": "manifest",
+      "deps": [
+        "thumb-1",
+        "thumb-2",
+        "thumb-3",
+        "thumb-4",
+        "thumb-5",
+        "thumb-cover-art"
+      ],
+      "command": [
+        "node",
+        "tools/manifest.js"
+      ],
+      "inputs": [
+        "out/1.thumb",
+        "out/2.thumb",
+        "out/3.thumb",
+        "out/4.thumb",
+        "out/5.thumb",
+        "out/cover art.thumb",
+        "tools/manifest.js"
+      ],
+      "outputs": [
+        "out/manifest.txt"
+      ]
+    }
+  ]
+}

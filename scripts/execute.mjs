@@ -19,6 +19,7 @@ function atomic(file, value) {
 
 function run(command, base, environment, timeout) {
   return new Promise(resolve => {
+    const started = Date.now();
     const child = spawn(command[0], command.slice(1), {cwd: base, env: {...process.env, ...environment}, shell: false, stdio: ['ignore','pipe','pipe']});
     children.add(child);
     let output = '', timedOut = false, error;
@@ -29,9 +30,21 @@ function run(command, base, environment, timeout) {
     const timer = setTimeout(() => { timedOut = true; child.kill('SIGKILL'); }, timeout);
     child.on('close', (code, signal) => {
       clearTimeout(timer); children.delete(child);
-      resolve({code, signal, timedOut, error, output});
+      resolve({code, signal, timedOut, error, output, duration_ms: Date.now() - started});
     });
   });
+}
+
+function hashDeclaredFiles(workflow, base) {
+  const hashes = {};
+  for (const task of workflow.tasks) for (const name of [...(task.inputs ?? []), ...(task.outputs ?? [])]) {
+    const file = safeFile(base, name);
+    if (fs.existsSync(file)) {
+      if (!fs.statSync(file).isFile()) throw new Error('Declared path must be a regular file');
+      hashes[name] = createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+    }
+  }
+  return hashes;
 }
 
 export async function execute(workflow, workspace, cacheFile, journalFile) {
@@ -40,24 +53,20 @@ export async function execute(workflow, workspace, cacheFile, journalFile) {
   // Validate the complete graph before executing any command.
   engine({tasks: workflow.tasks, hashes: {}, concurrency: workflow.concurrency ?? 4});
   const cache = fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, 'utf8')) : {};
-  const completed = {}, results = [];
+  const completed = {}, results = [], waves = [];
+  let initial;
   const environment = workflow.environment ?? {};
   for (const [name, value] of Object.entries(environment)) if (typeof value !== 'string' || name.includes('=')) throw new Error('Environment must map names to strings');
   let plan;
   for (;;) {
     if (cancelled) throw new Error('Execution cancelled');
-    const hashes = {};
-    for (const task of workflow.tasks) for (const name of [...(task.inputs ?? []), ...(task.outputs ?? [])]) {
-      const file = safeFile(base, name);
-      if (fs.existsSync(file)) {
-        if (!fs.statSync(file).isFile()) throw new Error('Declared path must be a regular file');
-        hashes[name] = createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-      }
-    }
-    plan = engine({tasks: workflow.tasks, hashes, cache, completed, environment,
+    plan = engine({tasks: workflow.tasks, hashes: hashDeclaredFiles(workflow, base), cache, completed, environment,
       concurrency: workflow.concurrency ?? 4});
+    // The first plan explains which tasks need work and why; later plans only report progress.
+    initial ??= plan.tasks.map(({id, status, reason}) => ({id, status, reason}));
     if (plan.terminal) break;
     if (!plan.ready.length) throw new Error('Scheduler made no progress');
+    waves.push(plan.ready.map(task => task.id));
     await Promise.all(plan.ready.map(async task => {
       let outcome;
       for (let attempt = 0; attempt <= task.retries; attempt++) {
@@ -71,11 +80,11 @@ export async function execute(workflow, workspace, cacheFile, journalFile) {
       });
       completed[task.id] = outcome?.code === 0 && !outcome?.timedOut && outputsExist ? 'success' : 'failed';
     }));
-    atomic(journalFile, {version: 1, completed, results, interrupted_runs_are_reexecuted: true});
+    atomic(journalFile, {version: 1, initial, completed, results, waves, interrupted_runs_are_reexecuted: true});
   }
   atomic(cacheFile, plan.cache);
-  atomic(journalFile, {version: 1, completed, results, plan});
-  return {plan, results};
+  atomic(journalFile, {version: 1, initial, completed, results, waves, plan});
+  return {plan, initial, results, waves};
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
