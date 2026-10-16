@@ -1,17 +1,35 @@
-# Implemented architecture
+# Implemented architecture (1.0.0)
 
-## Core
+## Planner
 
-Task identity/dependency/argv/path validation; deterministic topological ordering; cycle and output conflict rejection; producer dependency checks; canonical input/environment/dependency fingerprints; verified-output cache reuse; transitive invalidation; bounded ready waves; failed dependency blocking. scripts/execute.mjs runs real subprocesses with timeouts, retries, journals and SHA-256 file hashes.
+The MoonBit core is a pure planner: given the task graph, the digests of the declared files as the host observed them, the previous cache, the executor's completion reports and the explicit environment, it returns the next bounded wave and a full status report. It never reads files or starts processes.
 
-## Boundaries
+1. **Validate** (`load_tasks`): ids, argv commands, relative paths, output ownership (case-insensitive, no nesting between owners), dependency references, timeouts (1 ms–24 h), retries (0–10). A dependency cycle is rejected, and so is an input that another task produces unless that producer is a direct or transitive dependency.
+2. **Order**: tasks are emitted in execution order — repeated passes over the ids in UTF-16 code unit order, appending every task whose dependencies are already placed. The order is a deterministic topological order.
+3. **Fingerprint**: `{version, command, inputs: {path: digest}, outputs, environment, dependencies: {id: fingerprint}}`. Including the dependencies' fingerprints is what propagates invalidation transitively.
+4. **Decide** per task, in order: a failed or blocked dependency blocks it; an executor report of `failed`/`success` is accepted (a `success` without verified inputs/outputs is an input error); otherwise a cache entry with the same fingerprint and matching output digests makes it `cached`; otherwise, with satisfied dependencies, a missing input fails it, and it is `ready` while the wave has room or `waiting` beyond the concurrency bound; with unsatisfied dependencies it is `waiting`.
+5. **Explain**: each status carries a `reason`. For stale tasks the planner names the first fingerprint field that differs (`inputs`, `command`, `environment`, `dependencies`, `outputs`), or `outputs missing`/`outputs changed`/`no cache entry`/`no outputs declared`.
+6. **Report**: `tasks`, `ready` (commands, outputs, timeout, retries), `terminal`, `success`, `summary` (ids by status and `rerun`), and the refreshed `cache` for every successful or cached task with verified outputs.
 
-Commands are argv arrays with shell=false. This is a local executor, not a security sandbox: supplied commands have the current user's rights. Cache identity includes declared inputs and explicitly supplied environment; undeclared files, executable changes and inherited environment are not hermetic. Tasks without outputs always execute. Journals record results but interrupted tasks are re-executed; side effects should be idempotent. Killing a task targets its direct child process, not every grandchild. Output diagnostics are capped at 64 KiB; cache/journal files can contain explicit environment values. Concurrent hostile workspace mutation is not isolated.
+## Executor
 
-## Integration
+`scripts/execute.mjs` is the host adapter and the only component with side effects. Per run it validates the whole graph first, then loops: hash every declared file (SHA-256, regular files only, paths confined to the workspace, no symbolic links), plan, run the ready wave concurrently with `spawn` (argv, `shell=false`, inherited environment plus the explicit map), enforce per-task timeouts with `SIGKILL`, retry as configured, verify outputs exist before reporting `success`, write the journal atomically, and repeat until the plan is terminal. The journal records the initial plan (which tasks needed work and why), every attempt (exit code, signal, timeout flag, duration, bounded output) and the wave structure; the cache file is written only when the run ends. `SIGINT`/`SIGTERM` cancel the children. Interrupted runs are re-executed from the cache, not resumed from the journal.
 
-The core accepts semantic values and returns deterministic JSON-shaped reports. Host adapters handle files, network or processes; they invoke the compiled MoonBit engine. The CLI package declares `supported_targets = "js"`; other backends test the portable core.
+## Determinism
+
+Key order in requests never affects results. Ordering of ids uses `String::lexical_compare` (UTF-16 code units) rather than the toolchain's length-first `Compare for String`. Fingerprints are compared structurally, so digest strings of any form are accepted as long as the host is consistent.
+
+## Public interface
+
+`execute(Json) -> Json raise`, `run(Value) -> Value raise`, `load_tasks(Value) -> Array[Task] raise`, `parse(StringView) -> Value raise`, `from_json`, `Value::to_json`, `Value::stringify`, `Value`, `Task`, `InputError`. Trait promotions follow the moonbitlang/core policy (`extends.mbt`). The interface is recorded in `pkg.generated.mbti` and checked in CI.
 
 ## Validation evidence
 
-Fixture cases are hand-checked assertions. Independent reference checks and integration scripts are runnable from a clean checkout. CI executes four core backends and host checks. Historical proposal targets are not release results.
+- 30 fixture cases in `tests/cases.json`, run as generated MoonBit white-box tests on JS, wasm, wasm-gc and native, and through the real CLI by `scripts/check.mjs`.
+- Property tests in `engine_wbtest.mbt`: generated 60-task graphs driven to completion at concurrency 1, 3 and 8 (order respects every dependency, waves respect the bound), cache replay and the invalidation closure after an input change compared with an independent reverse traversal, plan reproducibility.
+- `scripts/reference.py`: 100 random graphs (about 1,350 tasks, including paths with spaces) driven through the planner by an independent Python harness: dependency order, bounded waves, reproducibility, the documented tie-break, and invalidation sets after an input change, a command change, a lost artifact and a forged cache entry compared with the independently computed dependent closure; failure blocking; recovery after re-executing a distrusted task.
+- `scripts/scenarios.mjs`: the three proposal scenarios through the real executor in temporary workspaces, 33 checks.
+- `scripts/integration.mjs`: real subprocesses with cache hits, input/output invalidation, failure propagation, timeout and retry.
+- CI runs `moon check --deny-warn`, `moon fmt --check`, interface and fixture freshness checks, all of the above, and the package consumption check on demand against a registry version.
+
+Historical proposal estimates (for example source line counts) are not release results; `scripts/stats.py` reports the actual numbers.

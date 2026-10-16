@@ -2,7 +2,13 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
+  workflow_dispatch:
+    inputs:
+      registry_version:
+        description: 'Registry version to consume from mooncakes.io (zero-major)'
+        required: true
 permissions:
   contents: read
 jobs:
@@ -20,7 +26,21 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
       - run: moon version --all
       - run: moon update
+      - run: moon check --deny-warn --target ${{ matrix.target }}
       - run: moon test --target ${{ matrix.target }}
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
+      - run: moon update
+      - run: moon fmt --check
+      - run: moon info && git diff --exit-code -- '*.mbti'
+      - run: python -B scripts/fixtures.py --check
+      - run: python -B scripts/stats.py
   integration:
     runs-on: ubuntu-latest
     steps:
@@ -37,3 +57,15 @@ jobs:
       - run: node scripts/check.mjs
       - run: python -B scripts/reference.py
       - run: node scripts/integration.mjs
+      - run: node scripts/scenarios.mjs
+  package:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
+      - run: moon update
+      - run: sh scripts/consume.sh "${{ github.event.inputs.registry_version }}"
