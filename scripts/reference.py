@@ -194,6 +194,20 @@ for case in range(100):
                 elif report['id'] not in always:
                     assert report['status'] == 'cached', case
 
+        if victim not in always:
+            # Content propagation: after the victim reruns with identical outputs, its dependents stay cached.
+            by_content = run({'tasks': tasks, 'hashes': hashes, 'completed': {t['id']: 'success' for t in tasks}, 'propagate': 'content'})
+            cutoff = run({'tasks': tasks, 'hashes': changed, 'cache': by_content['cache'], 'completed': {victim: 'success'}, 'propagate': 'content'})
+            for report in cutoff['tasks']:
+                if report['id'] == victim:
+                    assert report['status'] == 'success', case
+                elif report['id'] not in always:
+                    assert report['status'] == 'cached', (case, report)
+            # Default propagation rebuilds every dependent of the victim instead.
+            spread = run({'tasks': tasks, 'hashes': changed, 'cache': cache, 'completed': {victim: 'success'}})
+            stale_now = sorted(t['id'] for t in spread['tasks'] if t['status'] not in ('cached', 'success'))
+            assert stale_now == sorted(set(expected) - {victim}), case
+
         failed = run({'tasks': tasks, 'hashes': hashes, 'cache': cache, 'completed': {victim: 'failed'}})
         blocked = sorted(t['id'] for t in failed['tasks'] if t['status'] in ('failed', 'blocked'))
         assert blocked == closure(tasks, [victim]) and not failed['success'], case

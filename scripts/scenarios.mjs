@@ -49,6 +49,11 @@ await scenario('codegen', async ({pass, read, write, status, executed}) => {
   expect(executed(fix).join() === 'compile,test' && fix.plan.success, 'fixing the source reruns only compile and test');
   expect(status(fix.plan, 'generate').status === 'cached', 'generate stays cached after a source-only change');
   expect(fix.initial.find(t => t.id === 'compile').reason === 'fingerprint changed: inputs', 'compile explains its rebuild');
+
+  write('schema.json', JSON.stringify(JSON.parse(read('schema.json')), null, 4));
+  const cosmetic = await pass();
+  expect(executed(cosmetic).join() === 'generate' && cosmetic.plan.success, 'a whitespace-only schema change reruns only generate');
+  expect(status(cosmetic.plan, 'compile').status === 'cached' && status(cosmetic.plan, 'test').status === 'cached', 'identical generated output stops the rebuild (content propagation)');
 });
 
 await scenario('docs', async ({pass, read, write, status, executed, base}) => {

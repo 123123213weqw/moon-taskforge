@@ -157,6 +157,7 @@ fn fingerprint(
   executables : Value,
   env : Value,
   dependencies : Map[String, Value],
+  by_content : Bool,
 ) -> Value {
   let fields = [
     ("version", Number(fingerprint_version)),
@@ -176,10 +177,18 @@ fn fingerprint(
   }
   fields.push(("outputs", String(digest(canonical(strings(task.outputs))))))
   fields.push(("environment", String(digest(canonical(env)))))
+  // With content propagation a dependency only schedules; invalidation then
+  // follows the declared files alone, so an identical rebuild stops there.
   fields.push(
     (
       "dependencies",
-      record(task.dependencies.map(id => (id, get(dependencies[id], "digest")))),
+      if by_content {
+        record([])
+      } else {
+        record(
+          task.dependencies.map(id => (id, get(dependencies[id], "digest"))),
+        )
+      },
     ),
   )
   fields.push(("digest", String(digest(canonical(record(fields))))))
@@ -282,6 +291,10 @@ pub fn run(request : Value) -> Value raise {
       }
     }
   }
+  let propagate = optional_str(get(request, "propagate"), "fingerprint")
+  if propagate != "fingerprint" && propagate != "content" {
+    raise InputError("unknown propagation mode: " + propagate)
+  }
   let statuses : Map[String, String] = Map([])
   let fingerprints : Map[String, Value] = Map([])
   let refreshed : Map[String, Value] = Map([])
@@ -298,7 +311,14 @@ pub fn run(request : Value) -> Value raise {
   let mut terminal = true
   let mut success = true
   for task in tasks {
-    let fp = fingerprint(task, hashes, executables, env, fingerprints)
+    let fp = fingerprint(
+      task,
+      hashes,
+      executables,
+      env,
+      fingerprints,
+      propagate == "content",
+    )
     fingerprints[task.id] = fp
     let pending = task.dependencies.filter(id => {
       !["success", "cached"].contains(statuses[id])

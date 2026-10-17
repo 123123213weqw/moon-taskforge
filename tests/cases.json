@@ -972,6 +972,194 @@
     "note": "Dependents cannot be judged until the changed producer has run again; their fingerprints include the producer's new fingerprint."
   },
   {
+    "name": "fingerprint propagation rebuilds dependents of a rebuilt producer",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "echo",
+            "b"
+          ],
+          "deps": [
+            "a"
+          ],
+          "inputs": [
+            "a.txt"
+          ],
+          "outputs": [
+            "b.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h2",
+        "a.txt": "ha",
+        "b.txt": "hb"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 2,
+            "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+            "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+            "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+            "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "dependencies": {},
+            "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        },
+        "b": {
+          "fingerprint": {
+            "version": 2,
+            "command": "e70e2ac27552caa5e241886591183f7eda2a64080cf12a89e2bd91cd88103d10",
+            "inputs": "cead3f8c7613b27789643b8871c4c1c4aa3452c59a7d1e98162ff1ba59b4e188",
+            "outputs": "bcf50bedc636f90fe982fdae45c361415942ec6b912bc74392b808075f6bcfaf",
+            "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "dependencies": {
+              "a": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
+            },
+            "digest": "0c509e213e951359247e01ac373d31743e322514b65a9c8f39f0c773a893c611"
+          },
+          "outputs": {
+            "b.txt": "hb"
+          }
+        }
+      },
+      "completed": {
+        "a": "success"
+      }
+    },
+    "expected": {
+      "tasks/0/status": "success",
+      "tasks/1/status": "ready",
+      "tasks/1/reason": "fingerprint changed: dependencies"
+    },
+    "error": false,
+    "note": "By default a dependent's fingerprint includes its producers' fingerprints, so a producer that ran again invalidates it even when the produced bytes are identical."
+  },
+  {
+    "name": "content propagation stops at identical outputs",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "echo",
+            "b"
+          ],
+          "deps": [
+            "a"
+          ],
+          "inputs": [
+            "a.txt"
+          ],
+          "outputs": [
+            "b.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h2",
+        "a.txt": "ha",
+        "b.txt": "hb"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 2,
+            "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+            "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+            "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+            "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "dependencies": {},
+            "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        },
+        "b": {
+          "fingerprint": {
+            "version": 2,
+            "command": "e70e2ac27552caa5e241886591183f7eda2a64080cf12a89e2bd91cd88103d10",
+            "inputs": "cead3f8c7613b27789643b8871c4c1c4aa3452c59a7d1e98162ff1ba59b4e188",
+            "outputs": "bcf50bedc636f90fe982fdae45c361415942ec6b912bc74392b808075f6bcfaf",
+            "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+            "dependencies": {},
+            "digest": "93b018d2a750b6faca5920a8ca021183d580ad9388a6b323a34f64eb4a281370"
+          },
+          "outputs": {
+            "b.txt": "hb"
+          }
+        }
+      },
+      "completed": {
+        "a": "success"
+      },
+      "propagate": "content"
+    },
+    "expected": {
+      "tasks/0/status": "success",
+      "tasks/1/status": "cached",
+      "tasks/1/reason": "fingerprint and outputs verified"
+    },
+    "error": false,
+    "note": "With propagate: content, dependencies only order execution; invalidation follows the declared files, so a producer that reproduced identical outputs leaves its dependents cached (early cutoff)."
+  },
+  {
+    "name": "unknown propagation mode",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "propagate": "magic"
+    },
+    "expected": {},
+    "error": true
+  },
+  {
     "name": "paths with spaces",
     "request": {
       "tasks": [

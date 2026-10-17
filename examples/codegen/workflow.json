@@ -1,25 +1,55 @@
 {
   "concurrency": 2,
+  "propagate": "content",
   "tasks": [
     {
       "id": "generate",
-      "command": ["node", "tools/generate.js"],
-      "inputs": ["schema.json", "tools/generate.js"],
-      "outputs": ["generated/model.js"]
+      "command": [
+        "node",
+        "tools/generate.js"
+      ],
+      "inputs": [
+        "schema.json",
+        "tools/generate.js"
+      ],
+      "outputs": [
+        "generated/model.js"
+      ]
     },
     {
       "id": "compile",
-      "deps": ["generate"],
-      "command": ["node", "tools/bundle.js"],
-      "inputs": ["generated/model.js", "src/main.js", "tools/bundle.js"],
-      "outputs": ["build/app.js"]
+      "deps": [
+        "generate"
+      ],
+      "command": [
+        "node",
+        "tools/bundle.js"
+      ],
+      "inputs": [
+        "generated/model.js",
+        "src/main.js",
+        "tools/bundle.js"
+      ],
+      "outputs": [
+        "build/app.js"
+      ]
     },
     {
       "id": "test",
-      "deps": ["compile"],
-      "command": ["node", "tools/run-tests.js"],
-      "inputs": ["build/app.js", "tools/run-tests.js"],
-      "outputs": ["build/test-report.txt"]
+      "deps": [
+        "compile"
+      ],
+      "command": [
+        "node",
+        "tools/run-tests.js"
+      ],
+      "inputs": [
+        "build/app.js",
+        "tools/run-tests.js"
+      ],
+      "outputs": [
+        "build/test-report.txt"
+      ]
     }
   ]
 }

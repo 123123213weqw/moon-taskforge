@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `propagate: "content"` enables early cutoff: dependencies only order execution and invalidation follows declared file digests, so a producer that reproduces identical outputs leaves its dependents cached. The default `fingerprint` mode is unchanged.
 - `targets` (request field, workflow field or repeated `--target` flag) limits a run to the named tasks and their transitive dependencies; other tasks are reported `skipped` and never scheduled.
 - Requests may carry `executables` (program name to digest); when a task's program has a digest it is part of the fingerprint, so a changed tool invalidates the task. Fingerprints of hosts that do not supply digests are unchanged.
 - The executor hashes each task's program when the workflow sets `hash_executables: true` (explicit path or `PATH` lookup) and records the digests in the journal.

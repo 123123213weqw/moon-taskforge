@@ -86,13 +86,14 @@ function prepare(workflow, workspace, cacheFile, options = {}) {
   if (!fs.statSync(base).isDirectory()) throw new Error('Workspace must be a directory');
   const targets = options.targets ?? workflow.targets;
   // Validate the complete graph before touching the workspace or executing any command.
-  engine({tasks: workflow.tasks, hashes: {}, concurrency: workflow.concurrency ?? 4, ...(targets && {targets})});
+  engine({tasks: workflow.tasks, hashes: {}, concurrency: workflow.concurrency ?? 4, ...(targets && {targets}), ...(workflow.propagate && {propagate: workflow.propagate})});
   const environment = workflow.environment ?? {};
   for (const [name, value] of Object.entries(environment)) if (typeof value !== 'string' || name.includes('=')) throw new Error('Environment must map names to strings');
   const cache = fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, 'utf8')) : {};
   const executables = executableDigests(workflow, base);
   return {base, cache, environment, executables,
-    fingerprintInputs: {environment: environmentDigests(environment), executables, concurrency: workflow.concurrency ?? 4, ...(targets && {targets})}};
+    fingerprintInputs: {environment: environmentDigests(environment), executables, concurrency: workflow.concurrency ?? 4,
+      ...(targets && {targets}), ...(workflow.propagate && {propagate: workflow.propagate})}};
 }
 
 // Plans without executing anything or writing any file.

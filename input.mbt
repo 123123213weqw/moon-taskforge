@@ -51,6 +51,14 @@ fn num(value : Value) -> Double raise InputError {
 }
 
 ///|
+fn optional_str(value : Value, fallback : String) -> String raise InputError {
+  match value {
+    Null => fallback
+    _ => str(value)
+  }
+}
+
+///|
 fn optional_num(value : Value, fallback : Double) -> Double raise InputError {
   match value {
     Null => fallback

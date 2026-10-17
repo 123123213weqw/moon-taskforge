@@ -12,9 +12,9 @@ node scripts/execute.mjs /tmp/codegen/workflow.json /tmp/codegen      # everythi
 
 **Inputs.** `schema.json` (an entity with three fields), `tools/generate.js` (writes `generated/model.js`), `src/main.js` (validates a record against the model), `tools/bundle.js` (concatenates model and source into `build/app.js`), `tools/run-tests.js` (runs the bundle and writes `build/test-report.txt`). The graph is `generate → compile → test` with concurrency 2.
 
-**Process.** Pass 1 builds everything. Pass 2 changes nothing. Pass 3 adds a `customer` field to the schema. Pass 4 adds the field to the record in `src/main.js`.
+**Process.** Pass 1 builds everything. Pass 2 changes nothing. Pass 3 adds a `customer` field to the schema. Pass 4 adds the field to the record in `src/main.js`. Pass 5 reformats `schema.json` without changing its content. The workflow uses `propagate: "content"`.
 
-**Verifiable outputs.** Pass 1 executes all three tasks and the report starts with `exit=0`. Pass 2 executes nothing; every task is `cached` with reason `fingerprint and outputs verified`. Pass 3 reruns the whole chain: `generate` because `fingerprint changed: inputs`, the others because their inputs and dependency fingerprints changed; the regenerated model makes the test fail, the journal captures `record is missing fields: customer`, and `summary.rerun` is `["test"]`. Pass 4 reruns only `compile` and `test` (`generate` stays cached) and succeeds.
+**Verifiable outputs.** Pass 1 executes all three tasks and the report starts with `exit=0`. Pass 2 executes nothing; every task is `cached` with reason `fingerprint and outputs verified`. Pass 3 reruns the whole chain: `generate` because `fingerprint changed: inputs`, the others because their inputs and dependency fingerprints changed; the regenerated model makes the test fail, the journal captures `record is missing fields: customer`, and `summary.rerun` is `["test"]`. Pass 4 reruns only `compile` and `test` (`generate` stays cached) and succeeds. Pass 5 reruns only `generate`: the regenerated model is byte-identical, so content propagation leaves `compile` and `test` cached.
 
 ## 2. Documentation publishing preparation (`examples/docs`)
 
