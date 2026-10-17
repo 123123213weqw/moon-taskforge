@@ -51,6 +51,18 @@ def build_graph(case):
     return tasks
 
 
+def ancestors(tasks, roots):
+    """Roots plus everything they transitively depend on (independent forward traversal)."""
+    by_id = {t['id']: t for t in tasks}
+    required, pending = set(), list(roots)
+    while pending:
+        current = pending.pop()
+        if current not in required:
+            required.add(current)
+            pending.extend(by_id[current]['deps'])
+    return required
+
+
 def closure(tasks, roots):
     """Tasks that are, or transitively depend on, any root task (independent reverse traversal)."""
     affected = set(roots)
@@ -111,6 +123,12 @@ for case in range(100):
         assert all(dep in seen for dep in deps[id]), case
         seen.add(id)
     assert run({'tasks': tasks, 'concurrency': concurrency}) == run({'tasks': tasks, 'concurrency': concurrency}), case
+    chosen = random.sample(list(deps), random.randint(1, min(3, len(deps))))
+    selected = run({'tasks': tasks, 'hashes': source_hashes(tasks), 'targets': chosen})
+    required = ancestors(tasks, chosen)
+    assert {t['id'] for t in selected['tasks'] if t['status'] == 'skipped'} == set(deps) - required, case
+    assert all(t['status'] != 'skipped' for t in selected['tasks'] if t['id'] in required), case
+    assert all(t['id'] in required for t in selected['ready']), case
     if all(not needed for needed in deps.values()):
         assert plan_order == sorted(deps, key=utf16), case     # ties are broken by id in UTF-16 order
 

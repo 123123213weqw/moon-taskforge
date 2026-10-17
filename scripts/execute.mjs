@@ -81,22 +81,23 @@ function environmentDigests(environment) {
 }
 
 // Everything a planning call needs that does not change during a run.
-function prepare(workflow, workspace, cacheFile) {
+function prepare(workflow, workspace, cacheFile, options = {}) {
   const base = fs.realpathSync(workspace);
   if (!fs.statSync(base).isDirectory()) throw new Error('Workspace must be a directory');
+  const targets = options.targets ?? workflow.targets;
   // Validate the complete graph before touching the workspace or executing any command.
-  engine({tasks: workflow.tasks, hashes: {}, concurrency: workflow.concurrency ?? 4});
+  engine({tasks: workflow.tasks, hashes: {}, concurrency: workflow.concurrency ?? 4, ...(targets && {targets})});
   const environment = workflow.environment ?? {};
   for (const [name, value] of Object.entries(environment)) if (typeof value !== 'string' || name.includes('=')) throw new Error('Environment must map names to strings');
   const cache = fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, 'utf8')) : {};
   const executables = executableDigests(workflow, base);
   return {base, cache, environment, executables,
-    fingerprintInputs: {environment: environmentDigests(environment), executables, concurrency: workflow.concurrency ?? 4}};
+    fingerprintInputs: {environment: environmentDigests(environment), executables, concurrency: workflow.concurrency ?? 4, ...(targets && {targets})}};
 }
 
 // Plans without executing anything or writing any file.
-export function plan(workflow, workspace, cacheFile) {
-  const {base, cache, fingerprintInputs, executables} = prepare(workflow, workspace, cacheFile);
+export function plan(workflow, workspace, cacheFile, options = {}) {
+  const {base, cache, fingerprintInputs, executables} = prepare(workflow, workspace, cacheFile, options);
   const hashes = hashDeclaredFiles(workflow, base);
   return {plan: engine({tasks: workflow.tasks, hashes, cache, completed: {}, ...fingerprintInputs}), hashes, cache, executables};
 }
@@ -106,8 +107,8 @@ const canonical = value => JSON.stringify(value, (key, item) =>
 
 // Explains one task: its status and reason, which fingerprint fields differ from the cache
 // entry, the current versus recorded output digests, and the status of its dependencies.
-export function why(workflow, workspace, cacheFile, id) {
-  const {plan: current, hashes, cache} = plan(workflow, workspace, cacheFile);
+export function why(workflow, workspace, cacheFile, id, options = {}) {
+  const {plan: current, hashes, cache} = plan(workflow, workspace, cacheFile, options);
   const report = current.tasks.find(task => task.id === id);
   if (!report) throw new Error('Unknown task: ' + id);
   const task = workflow.tasks.find(candidate => candidate.id === id);
@@ -143,7 +144,7 @@ function pruneOrphans(workflow, base, cache) {
 
 export async function execute(workflow, workspace, cacheFile, journalFile, options = {}) {
   const started = Date.now();
-  const {base, cache, environment, executables, fingerprintInputs} = prepare(workflow, workspace, cacheFile);
+  const {base, cache, environment, executables, fingerprintInputs} = prepare(workflow, workspace, cacheFile, options);
   const pruned = options.prune ? pruneOrphans(workflow, base, cache) : [];
   const completed = {}, results = [], waves = [];
   let initial;
@@ -186,25 +187,27 @@ export async function execute(workflow, workspace, cacheFile, journalFile, optio
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
-    let mode = 'execute', target, prune = false;
+    let mode = 'execute', target, prune = false, targets;
     while (args[0]?.startsWith('--')) {
       const flag = args.shift();
       if (flag === '--plan') mode = 'plan';
       else if (flag === '--why') { mode = 'why'; target = args.shift(); }
       else if (flag === '--prune') prune = true;
+      else if (flag === '--target') (targets ??= []).push(args.shift());
       else throw new Error('Unknown option ' + flag);
     }
     const [file, workspace = process.cwd()] = args;
-    if (!file || (mode === 'why' && !target)) throw new Error('Usage: node scripts/execute.mjs [--plan | --why TASK] [--prune] workflow.json [workspace]');
+    if (!file || (mode === 'why' && !target) || targets?.includes(undefined)) throw new Error('Usage: node scripts/execute.mjs [--plan | --why TASK] [--prune] [--target TASK]... workflow.json [workspace]');
     const base = fs.realpathSync(workspace);
     const workflow = JSON.parse(fs.readFileSync(file, 'utf8'));
     const cacheFile = path.join(base, '.taskforge-cache.json');
+    const options = {prune, ...(targets && {targets})};
     if (mode === 'plan') {
-      console.log(JSON.stringify(plan(workflow, base, cacheFile).plan, null, 2));
+      console.log(JSON.stringify(plan(workflow, base, cacheFile, options).plan, null, 2));
     } else if (mode === 'why') {
-      console.log(JSON.stringify(why(workflow, base, cacheFile, target), null, 2));
+      console.log(JSON.stringify(why(workflow, base, cacheFile, target, options), null, 2));
     } else {
-      const result = await execute(workflow, base, cacheFile, path.join(base, '.taskforge-journal.json'), {prune});
+      const result = await execute(workflow, base, cacheFile, path.join(base, '.taskforge-journal.json'), options);
       console.log(JSON.stringify(result, null, 2));
       process.exitCode = result.plan.success ? 0 : 1;
     }

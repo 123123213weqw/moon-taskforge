@@ -1214,6 +1214,168 @@ Expected result fields:
 }
 ```
 
+## targets select a dependency closure
+
+targets limits the run to the named tasks and their transitive dependencies; everything else is skipped and never scheduled.
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "in.txt"
+      ],
+      "outputs": [
+        "a.txt"
+      ]
+    },
+    {
+      "id": "b",
+      "command": [
+        "echo",
+        "b"
+      ],
+      "deps": [
+        "a"
+      ],
+      "inputs": [
+        "a.txt"
+      ],
+      "outputs": [
+        "b.txt"
+      ]
+    },
+    {
+      "id": "c",
+      "command": [
+        "echo",
+        "c"
+      ],
+      "deps": [
+        "b"
+      ],
+      "inputs": [
+        "b.txt"
+      ],
+      "outputs": [
+        "c.txt"
+      ]
+    },
+    {
+      "id": "d",
+      "command": [
+        "echo",
+        "d"
+      ]
+    }
+  ],
+  "hashes": {
+    "in.txt": "h"
+  },
+  "targets": [
+    "b"
+  ]
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "tasks/0/status": "ready",
+  "tasks/1/status": "waiting",
+  "tasks/2/status": "skipped",
+  "tasks/2/reason": "not required by targets",
+  "tasks/3/status": "skipped",
+  "summary/skipped": [
+    "c",
+    "d"
+  ],
+  "terminal": false
+}
+```
+
+## skipped tasks do not block completion
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "in.txt"
+      ],
+      "outputs": [
+        "a.txt"
+      ]
+    },
+    {
+      "id": "d",
+      "command": [
+        "echo",
+        "d"
+      ]
+    }
+  ],
+  "hashes": {
+    "in.txt": "h"
+  },
+  "targets": [
+    "d"
+  ],
+  "completed": {
+    "d": "success"
+  }
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "tasks/0/status": "skipped",
+  "tasks/1/status": "success",
+  "terminal": true,
+  "success": true
+}
+```
+
+## unknown target
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "in.txt"
+      ],
+      "outputs": [
+        "a.txt"
+      ]
+    }
+  ],
+  "targets": [
+    "ghost"
+  ]
+}
+```
+
+Expected: nonzero exit with an input error.
+
 ## deep chain waits link by link
 
 ```json

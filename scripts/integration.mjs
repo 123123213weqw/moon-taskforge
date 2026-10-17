@@ -60,6 +60,14 @@ try {
   assert.deepEqual(why(workflow,base,cache,'validate').dependencies,[{id:'generate',status:'ready'}]);
   assert.throws(()=>why(workflow,base,cache,'ghost'),/Unknown task/);
 
+  // --target limits the run to a task and its dependencies; the rest is skipped and left alone.
+  fs.writeFileSync(path.join(base,'input.txt'),'targeted');
+  const targeted = await execute(workflow,base,cache,journal,{targets:['generate']});
+  assert.deepEqual(targeted.results.map(r=>r.id),['generate']);
+  assert.deepEqual(targeted.plan.summary.skipped,['validate']);
+  assert.equal(fs.readFileSync(path.join(base,'report.txt'),'utf8'),'second','skipped task did not run');
+  assert.equal(targeted.plan.success,true);
+
   // --prune removes outputs the cache remembers for tasks that no longer exist, and nothing else.
   assert.equal((await execute(workflow,base,cache,journal)).plan.success,true);
   const trimmed = {tasks:[workflow.tasks[0]]};               // validate (and report.txt) is gone from the workflow

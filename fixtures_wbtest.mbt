@@ -395,6 +395,47 @@ test "summary groups" {
 }
 
 ///|
+test "targets select a dependency closure" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]},{\"id\":\"b\",\"command\":[\"echo\",\"b\"],\"deps\":[\"a\"],\"inputs\":[\"a.txt\"],\"outputs\":[\"b.txt\"]},{\"id\":\"c\",\"command\":[\"echo\",\"c\"],\"deps\":[\"b\"],\"inputs\":[\"b.txt\"],\"outputs\":[\"c.txt\"]},{\"id\":\"d\",\"command\":[\"echo\",\"d\"]}],\"hashes\":{\"in.txt\":\"h\"},\"targets\":[\"b\"]}",
+    ),
+  )
+  assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
+  assert_eq(test_at(result, ["tasks", "1", "status"]), parse("\"waiting\""))
+  assert_eq(test_at(result, ["tasks", "2", "status"]), parse("\"skipped\""))
+  assert_eq(
+    test_at(result, ["tasks", "2", "reason"]),
+    parse("\"not required by targets\""),
+  )
+  assert_eq(test_at(result, ["tasks", "3", "status"]), parse("\"skipped\""))
+  assert_eq(test_at(result, ["summary", "skipped"]), parse("[\"c\",\"d\"]"))
+  assert_eq(test_at(result, ["terminal"]), parse("false"))
+}
+
+///|
+test "skipped tasks do not block completion" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]},{\"id\":\"d\",\"command\":[\"echo\",\"d\"]}],\"hashes\":{\"in.txt\":\"h\"},\"targets\":[\"d\"],\"completed\":{\"d\":\"success\"}}",
+    ),
+  )
+  assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"skipped\""))
+  assert_eq(test_at(result, ["tasks", "1", "status"]), parse("\"success\""))
+  assert_eq(test_at(result, ["terminal"]), parse("true"))
+  assert_eq(test_at(result, ["success"]), parse("true"))
+}
+
+///|
+test "unknown target" {
+  assert_true(
+    fails(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"targets\":[\"ghost\"]}",
+    ),
+  )
+}
+
+///|
 test "deep chain waits link by link" {
   let result = run(
     parse(

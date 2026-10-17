@@ -10,7 +10,7 @@ Incremental local task execution, implemented in MoonBit with a JSON CLI and reu
 ## Implemented
 
 - **Graph validation**: unique non-empty ids, argv commands, relative input/output paths (spaces allowed, no `..`, no absolute or drive paths), case-insensitive and nested output conflicts, unknown or duplicate dependencies, cycles, and produced inputs whose producer is not a (transitive) dependency are all rejected before anything runs.
-- **Deterministic planning**: tasks are reported in execution order (every task after its dependencies, ties by id in UTF-16 code unit order); the ready wave is bounded by `concurrency`.
+- **Deterministic planning**: tasks are reported in execution order (every task after its dependencies, ties by id in UTF-16 code unit order); the ready wave is bounded by `concurrency`; `targets` limits a run to the named tasks and their transitive dependencies and reports the rest as `skipped`.
 - **Fingerprints and cache**: a task's fingerprint is a Merkle node — SHA-256 digests of its command, declared input digests, declared outputs and explicit environment, the digests of its dependencies' fingerprints, optionally its program's digest, and the node's own digest — so it stays constant-size however deep the graph. A cache entry is reused only when the fingerprint matches *and* every declared output still has the recorded digest; invalidation propagates transitively.
 - **Reasons**: every task report carries a `reason` — `fingerprint and outputs verified`, `fingerprint changed: inputs|command|environment|dependencies|outputs`, `outputs missing`, `outputs changed`, `no cache entry`, `no outputs declared`, `missing input: …`, `dependency failed: …`, `waiting for: …`, `concurrency limit reached`, or the executor's report.
 - **Summary**: ids grouped by status plus `rerun`, the failed and blocked tasks the next run will attempt, in execution order.
@@ -29,6 +29,7 @@ node scripts/execute.mjs examples/codegen/workflow.json WORKSPACE          # exe
 node scripts/execute.mjs --plan examples/codegen/workflow.json WORKSPACE   # hash and plan, execute nothing
 node scripts/execute.mjs --why test examples/codegen/workflow.json WORKSPACE   # explain one task against the cache
 node scripts/execute.mjs --prune examples/codegen/workflow.json WORKSPACE  # also delete outputs no task declares any more
+node scripts/execute.mjs --target compile examples/codegen/workflow.json WORKSPACE   # only compile and what it needs
 ```
 
 Pass `-` to read a UTF-8 JSON request from stdin. A single request must be at most 16 MiB. Successful requests print one JSON result; invalid requests print `{"error": "..."}` and exit nonzero. The executor copies nothing: run it in a scratch copy of a scenario directory (`scripts/scenarios.mjs` does this automatically). `--plan` prints the plan the executor would start from without running or writing anything; `--why TASK` prints the task's status and reason, which fingerprint fields differ from its cache entry, current versus recorded output digests, and its dependencies' statuses. The cache file accumulates entries across workflows that share a workspace; a task that fails drops its entry. `--prune` deletes files the cache records as outputs that no current task declares (and drops entries of removed tasks) before executing; it never touches undeclared files. Results and journals carry the run duration and each wave's tasks and duration.
@@ -60,7 +61,7 @@ fn example(request : Json) -> Json raise {
 
 ## Requests and results
 
-A plan request has `tasks` (each `{id, command, deps?, inputs?, outputs?, timeout_ms?, retries?}`) and optionally `hashes` (declared file → digest, as observed by the host), `cache` (the previous result's `cache`), `completed` (`success`/`failed` reports from the executor), `environment` (string map, part of the fingerprint) and `concurrency`. The result has `tasks` (id, status, reason, fingerprint, in execution order), `ready` (the next wave with commands, outputs, timeouts and retries), `terminal`, `success`, `summary` and `cache`. The host drives the loop: hash, plan, execute the ready wave, report, repeat until `terminal`. Every documented case in [docs/usage.md](docs/usage.md) is an executable fixture.
+A plan request has `tasks` (each `{id, command, deps?, inputs?, outputs?, timeout_ms?, retries?}`) and optionally `hashes` (declared file → digest, as observed by the host), `cache` (the previous result's `cache`), `completed` (`success`/`failed` reports from the executor), `environment` (string map, part of the fingerprint), `executables` (program → digest), `targets` and `concurrency`. The result has `tasks` (id, status, reason, fingerprint, in execution order), `ready` (the next wave with commands, outputs, timeouts and retries), `terminal`, `success`, `summary` and `cache`. The host drives the loop: hash, plan, execute the ready wave, report, repeat until `terminal`. Every documented case in [docs/usage.md](docs/usage.md) is an executable fixture.
 
 ## Scenarios
 

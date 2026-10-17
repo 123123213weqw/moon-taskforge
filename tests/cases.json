@@ -1077,6 +1077,153 @@
     "error": false
   },
   {
+    "name": "targets select a dependency closure",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "echo",
+            "b"
+          ],
+          "deps": [
+            "a"
+          ],
+          "inputs": [
+            "a.txt"
+          ],
+          "outputs": [
+            "b.txt"
+          ]
+        },
+        {
+          "id": "c",
+          "command": [
+            "echo",
+            "c"
+          ],
+          "deps": [
+            "b"
+          ],
+          "inputs": [
+            "b.txt"
+          ],
+          "outputs": [
+            "c.txt"
+          ]
+        },
+        {
+          "id": "d",
+          "command": [
+            "echo",
+            "d"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h"
+      },
+      "targets": [
+        "b"
+      ]
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "tasks/1/status": "waiting",
+      "tasks/2/status": "skipped",
+      "tasks/2/reason": "not required by targets",
+      "tasks/3/status": "skipped",
+      "summary/skipped": [
+        "c",
+        "d"
+      ],
+      "terminal": false
+    },
+    "error": false,
+    "note": "targets limits the run to the named tasks and their transitive dependencies; everything else is skipped and never scheduled."
+  },
+  {
+    "name": "skipped tasks do not block completion",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        },
+        {
+          "id": "d",
+          "command": [
+            "echo",
+            "d"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h"
+      },
+      "targets": [
+        "d"
+      ],
+      "completed": {
+        "d": "success"
+      }
+    },
+    "expected": {
+      "tasks/0/status": "skipped",
+      "tasks/1/status": "success",
+      "terminal": true,
+      "success": true
+    },
+    "error": false
+  },
+  {
+    "name": "unknown target",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "targets": [
+        "ghost"
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
     "name": "deep chain waits link by link",
     "request": {
       "tasks": [

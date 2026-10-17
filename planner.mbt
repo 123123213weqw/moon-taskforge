@@ -258,13 +258,40 @@ pub fn run(request : Value) -> Value raise {
     256.0,
     "concurrency",
   )
+  // Targets restrict the run to the named tasks and their transitive
+  // dependencies; everything else is reported as skipped.
+  let required : Map[String, Bool] = Map([])
+  let targets = optional_strings(get(request, "targets"))
+  if get(request, "targets") != Null {
+    let by_id : Map[String, Task] = Map([])
+    for task in tasks {
+      by_id[task.id] = task
+    }
+    let pending = targets.copy()
+    while pending.length() > 0 {
+      let id = pending.pop().unwrap()
+      match by_id.get(id) {
+        None => raise InputError("unknown target: " + id)
+        Some(task) =>
+          if !required.contains(id) {
+            required[id] = true
+            for dep in task.dependencies {
+              pending.push(dep)
+            }
+          }
+      }
+    }
+  }
   let statuses : Map[String, String] = Map([])
   let fingerprints : Map[String, Value] = Map([])
   let refreshed : Map[String, Value] = Map([])
   let reports : Array[Value] = []
   let ready : Array[Value] = []
   let groups : Map[String, Array[String]] = Map([])
-  for status in ["cached", "success", "failed", "blocked", "ready", "waiting"] {
+  for
+    status in [
+      "cached", "success", "failed", "blocked", "ready", "waiting", "skipped",
+    ] {
     groups[status] = []
   }
   let rerun : Array[String] = []
@@ -293,7 +320,10 @@ pub fn run(request : Value) -> Value raise {
       get(saved, "fingerprint") == fp &&
       get(saved, "outputs") == output_hashes
     let finished = get(completed, task.id)
-    let (status, reason) = if !failed_dependency.is_empty() {
+    let selected = get(request, "targets") == Null || required.contains(task.id)
+    let (status, reason) = if !selected {
+      ("skipped", "not required by targets")
+    } else if !failed_dependency.is_empty() {
       ("blocked", "dependency failed: " + failed_dependency.join(", "))
     } else if finished == String("failed") {
       ("failed", "reported failed by executor")
