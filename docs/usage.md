@@ -756,6 +756,158 @@ Expected result fields:
 }
 ```
 
+## executable digest invalidates
+
+When the host supplies a digest for a task's program it becomes part of the fingerprint, so a changed executable invalidates the task; hosts that do not hash executables keep their fingerprints.
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "in.txt"
+      ],
+      "outputs": [
+        "a.txt"
+      ]
+    }
+  ],
+  "hashes": {
+    "in.txt": "h",
+    "a.txt": "ha"
+  },
+  "cache": {
+    "a": {
+      "fingerprint": {
+        "version": 1,
+        "command": [
+          "echo",
+          "a"
+        ],
+        "inputs": {
+          "in.txt": "h"
+        },
+        "outputs": [
+          "a.txt"
+        ],
+        "environment": {},
+        "dependencies": {}
+      },
+      "outputs": {
+        "a.txt": "ha"
+      }
+    }
+  },
+  "executables": {
+    "echo": "e1"
+  }
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "tasks/0/status": "ready",
+  "tasks/0/reason": "fingerprint changed: executable",
+  "tasks/0/fingerprint/executable": "e1"
+}
+```
+
+## executable digest round trip
+
+Fingerprints are compared structurally: the cached entry here lists its fields in a different order.
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "in.txt"
+      ],
+      "outputs": [
+        "a.txt"
+      ]
+    }
+  ],
+  "hashes": {
+    "in.txt": "h",
+    "a.txt": "ha"
+  },
+  "cache": {
+    "a": {
+      "fingerprint": {
+        "dependencies": {},
+        "environment": {},
+        "executable": "e1",
+        "outputs": [
+          "a.txt"
+        ],
+        "inputs": {
+          "in.txt": "h"
+        },
+        "command": [
+          "echo",
+          "a"
+        ],
+        "version": 1
+      },
+      "outputs": {
+        "a.txt": "ha"
+      }
+    }
+  },
+  "executables": {
+    "echo": "e1"
+  }
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "tasks/0/status": "cached"
+}
+```
+
+## executable digests must be strings
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "in.txt"
+      ],
+      "outputs": [
+        "a.txt"
+      ]
+    }
+  ],
+  "executables": {
+    "echo": 1
+  }
+}
+```
+
+Expected: nonzero exit with an input error.
+
 ## forged cache outputs rejected
 
 A cache entry whose recorded output digest no longer matches the file is not trusted; the task is executed again.

@@ -14,7 +14,7 @@ let fingerprint_version : Double = 1.0
 
 ///|
 let fingerprint_fields : Array[String] = [
-  "inputs", "command", "environment", "dependencies", "outputs",
+  "inputs", "command", "executable", "environment", "dependencies", "outputs",
 ]
 
 ///|
@@ -146,22 +146,31 @@ pub fn load_tasks(value : Value) -> Array[Task] raise {
 }
 
 ///|
+/// The executable digest is included only when the host supplied one for
+/// the task's program, so fingerprints of hosts that do not hash
+/// executables are unchanged.
 fn fingerprint(
   task : Task,
   hashes : Value,
+  executables : Value,
   env : Value,
   dependencies : Map[String, Value],
 ) -> Value {
   let inputs = record(task.inputs.map(path => (path, get(hashes, path))))
   let deps = record(task.dependencies.map(id => (id, dependencies[id])))
-  record([
+  let fields = [
     ("version", Number(fingerprint_version)),
     ("command", strings(task.command)),
     ("inputs", inputs),
-    ("outputs", strings(task.outputs)),
-    ("environment", env),
-    ("dependencies", deps),
-  ])
+  ]
+  match get(executables, task.command[0]) {
+    Null => ()
+    digest => fields.push(("executable", digest))
+  }
+  fields.push(("outputs", strings(task.outputs)))
+  fields.push(("environment", env))
+  fields.push(("dependencies", deps))
+  record(fields)
 }
 
 ///|
@@ -213,6 +222,9 @@ fn string_map(value : Value, what : String) -> Map[String, Value] raise {
 pub fn run(request : Value) -> Value raise {
   let tasks = load_tasks(get(request, "tasks"))
   let hashes = Object(string_map(get(request, "hashes"), "hash"))
+  let executables = Object(
+    string_map(get(request, "executables"), "executable digest"),
+  )
   let env = Object(string_map(get(request, "environment"), "environment"))
   let cache = if get(request, "cache") == Null {
     Object(Map([]))
@@ -246,7 +258,7 @@ pub fn run(request : Value) -> Value raise {
   let mut terminal = true
   let mut success = true
   for task in tasks {
-    let fp = fingerprint(task, hashes, env, fingerprints)
+    let fp = fingerprint(task, hashes, executables, env, fingerprints)
     fingerprints[task.id] = fp
     let pending = task.dependencies.filter(id => {
       !["success", "cached"].contains(statuses[id])

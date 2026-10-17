@@ -673,6 +673,142 @@
     "error": false
   },
   {
+    "name": "executable digest invalidates",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h",
+        "a.txt": "ha"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "version": 1,
+            "command": [
+              "echo",
+              "a"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "outputs": [
+              "a.txt"
+            ],
+            "environment": {},
+            "dependencies": {}
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      },
+      "executables": {
+        "echo": "e1"
+      }
+    },
+    "expected": {
+      "tasks/0/status": "ready",
+      "tasks/0/reason": "fingerprint changed: executable",
+      "tasks/0/fingerprint/executable": "e1"
+    },
+    "error": false,
+    "note": "When the host supplies a digest for a task's program it becomes part of the fingerprint, so a changed executable invalidates the task; hosts that do not hash executables keep their fingerprints."
+  },
+  {
+    "name": "executable digest round trip",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "hashes": {
+        "in.txt": "h",
+        "a.txt": "ha"
+      },
+      "cache": {
+        "a": {
+          "fingerprint": {
+            "dependencies": {},
+            "environment": {},
+            "executable": "e1",
+            "outputs": [
+              "a.txt"
+            ],
+            "inputs": {
+              "in.txt": "h"
+            },
+            "command": [
+              "echo",
+              "a"
+            ],
+            "version": 1
+          },
+          "outputs": {
+            "a.txt": "ha"
+          }
+        }
+      },
+      "executables": {
+        "echo": "e1"
+      }
+    },
+    "expected": {
+      "tasks/0/status": "cached"
+    },
+    "error": false,
+    "note": "Fingerprints are compared structurally: the cached entry here lists its fields in a different order."
+  },
+  {
+    "name": "executable digests must be strings",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "in.txt"
+          ],
+          "outputs": [
+            "a.txt"
+          ]
+        }
+      ],
+      "executables": {
+        "echo": 1
+      }
+    },
+    "expected": {},
+    "error": true
+  },
+  {
     "name": "forged cache outputs rejected",
     "request": {
       "tasks": [

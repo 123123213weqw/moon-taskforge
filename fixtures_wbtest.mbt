@@ -263,6 +263,43 @@ test "environment change invalidates" {
 }
 
 ///|
+test "executable digest invalidates" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}},\"executables\":{\"echo\":\"e1\"}}",
+    ),
+  )
+  assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
+  assert_eq(
+    test_at(result, ["tasks", "0", "reason"]),
+    parse("\"fingerprint changed: executable\""),
+  )
+  assert_eq(
+    test_at(result, ["tasks", "0", "fingerprint", "executable"]),
+    parse("\"e1\""),
+  )
+}
+
+///|
+test "executable digest round trip" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"dependencies\":{},\"environment\":{},\"executable\":\"e1\",\"outputs\":[\"a.txt\"],\"inputs\":{\"in.txt\":\"h\"},\"command\":[\"echo\",\"a\"],\"version\":1},\"outputs\":{\"a.txt\":\"ha\"}}},\"executables\":{\"echo\":\"e1\"}}",
+    ),
+  )
+  assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"cached\""))
+}
+
+///|
+test "executable digests must be strings" {
+  assert_true(
+    fails(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"executables\":{\"echo\":1}}",
+    ),
+  )
+}
+
+///|
 test "forged cache outputs rejected" {
   let result = run(
     parse(
