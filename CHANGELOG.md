@@ -7,6 +7,8 @@
 - The executor passes only SHA-256 digests of environment values to the planner, so the cache and journal never contain raw environment values; invalidation on a changed value is unaffected.
 - `node scripts/execute.mjs --plan WORKFLOW [WORKSPACE]` hashes and plans without executing or writing anything; `--why TASK` explains a task: status, reason, changed fingerprint fields versus the cache entry, output digests current versus recorded, dependency statuses. Both are also exported as `plan` and `why` from the module.
 - The cache file now accumulates entries across runs and workflows sharing a workspace instead of being replaced; a task that failed drops its entry.
+- `--prune` deletes files the cache records as outputs that no current task declares and drops cache entries of removed tasks; `pruned` lists them in the result and journal.
+- Results and journals report `duration_ms` for the run and `{tasks, duration_ms}` per wave.
 
 ## 1.0.0 — 2026-10-16
 

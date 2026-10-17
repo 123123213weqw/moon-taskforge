@@ -28,9 +28,10 @@ node _build/js/debug/build/cmd/main/main.js examples/request.json
 node scripts/execute.mjs examples/codegen/workflow.json WORKSPACE          # execute a workflow for real
 node scripts/execute.mjs --plan examples/codegen/workflow.json WORKSPACE   # hash and plan, execute nothing
 node scripts/execute.mjs --why test examples/codegen/workflow.json WORKSPACE   # explain one task against the cache
+node scripts/execute.mjs --prune examples/codegen/workflow.json WORKSPACE  # also delete outputs no task declares any more
 ```
 
-Pass `-` to read a UTF-8 JSON request from stdin. A single request must be at most 16 MiB. Successful requests print one JSON result; invalid requests print `{"error": "..."}` and exit nonzero. The executor copies nothing: run it in a scratch copy of a scenario directory (`scripts/scenarios.mjs` does this automatically). `--plan` prints the plan the executor would start from without running or writing anything; `--why TASK` prints the task's status and reason, which fingerprint fields differ from its cache entry, current versus recorded output digests, and its dependencies' statuses. The cache file accumulates entries across workflows that share a workspace; a task that fails drops its entry.
+Pass `-` to read a UTF-8 JSON request from stdin. A single request must be at most 16 MiB. Successful requests print one JSON result; invalid requests print `{"error": "..."}` and exit nonzero. The executor copies nothing: run it in a scratch copy of a scenario directory (`scripts/scenarios.mjs` does this automatically). `--plan` prints the plan the executor would start from without running or writing anything; `--why TASK` prints the task's status and reason, which fingerprint fields differ from its cache entry, current versus recorded output digests, and its dependencies' statuses. The cache file accumulates entries across workflows that share a workspace; a task that fails drops its entry. `--prune` deletes files the cache records as outputs that no current task declares (and drops entries of removed tasks) before executing; it never touches undeclared files. Results and journals carry the run duration and each wave's tasks and duration.
 
 ## Library use
 

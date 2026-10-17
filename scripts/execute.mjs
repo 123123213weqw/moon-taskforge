@@ -122,8 +122,29 @@ export function why(workflow, workspace, cacheFile, id) {
   };
 }
 
-export async function execute(workflow, workspace, cacheFile, journalFile) {
+// Removes files the cache records as outputs that no current task declares, and the
+// cache entries of tasks that no longer exist. Only declared, cache-recorded paths inside
+// the workspace are ever touched.
+function pruneOrphans(workflow, base, cache) {
+  const declared = new Set(workflow.tasks.flatMap(task => task.outputs ?? []));
+  const current = new Set(workflow.tasks.map(task => task.id));
+  const pruned = [];
+  for (const [id, entry] of Object.entries(cache)) {
+    for (const name of Object.keys(entry.outputs ?? {})) {
+      if (declared.has(name)) continue;
+      const file = safeFile(base, name);
+      if (fs.existsSync(file) && fs.statSync(file).isFile()) { fs.rmSync(file); pruned.push(name); }
+      delete entry.outputs[name];
+    }
+    if (!current.has(id)) delete cache[id];
+  }
+  return pruned.sort();
+}
+
+export async function execute(workflow, workspace, cacheFile, journalFile, options = {}) {
+  const started = Date.now();
   const {base, cache, environment, executables, fingerprintInputs} = prepare(workflow, workspace, cacheFile);
+  const pruned = options.prune ? pruneOrphans(workflow, base, cache) : [];
   const completed = {}, results = [], waves = [];
   let initial;
   let plan;
@@ -134,7 +155,9 @@ export async function execute(workflow, workspace, cacheFile, journalFile) {
     initial ??= plan.tasks.map(({id, status, reason}) => ({id, status, reason}));
     if (plan.terminal) break;
     if (!plan.ready.length) throw new Error('Scheduler made no progress');
-    waves.push(plan.ready.map(task => task.id));
+    const wave = {tasks: plan.ready.map(task => task.id), duration_ms: 0};
+    const waveStarted = Date.now();
+    waves.push(wave);
     await Promise.all(plan.ready.map(async task => {
       let outcome;
       for (let attempt = 0; attempt <= task.retries; attempt++) {
@@ -148,28 +171,31 @@ export async function execute(workflow, workspace, cacheFile, journalFile) {
       });
       completed[task.id] = outcome?.code === 0 && !outcome?.timedOut && outputsExist ? 'success' : 'failed';
     }));
-    atomic(journalFile, {version: 1, initial, executables, completed, results, waves, interrupted_runs_are_reexecuted: true});
+    wave.duration_ms = Date.now() - waveStarted;
+    atomic(journalFile, {version: 1, initial, executables, pruned, completed, results, waves, interrupted_runs_are_reexecuted: true});
   }
   // The cache accumulates across workflows that share a workspace; a task that failed drops its entry.
   const refreshed = {...cache, ...plan.cache};
   for (const task of plan.tasks) if (task.status === 'failed') delete refreshed[task.id];
   atomic(cacheFile, refreshed);
-  atomic(journalFile, {version: 1, initial, executables, completed, results, waves, plan});
-  return {plan, initial, executables, results, waves};
+  const duration_ms = Date.now() - started;
+  atomic(journalFile, {version: 1, initial, executables, pruned, completed, results, waves, duration_ms, plan});
+  return {plan, initial, executables, pruned, results, waves, duration_ms};
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
-    let mode = 'execute', target;
+    let mode = 'execute', target, prune = false;
     while (args[0]?.startsWith('--')) {
       const flag = args.shift();
       if (flag === '--plan') mode = 'plan';
       else if (flag === '--why') { mode = 'why'; target = args.shift(); }
+      else if (flag === '--prune') prune = true;
       else throw new Error('Unknown option ' + flag);
     }
     const [file, workspace = process.cwd()] = args;
-    if (!file || (mode === 'why' && !target)) throw new Error('Usage: node scripts/execute.mjs [--plan | --why TASK] workflow.json [workspace]');
+    if (!file || (mode === 'why' && !target)) throw new Error('Usage: node scripts/execute.mjs [--plan | --why TASK] [--prune] workflow.json [workspace]');
     const base = fs.realpathSync(workspace);
     const workflow = JSON.parse(fs.readFileSync(file, 'utf8'));
     const cacheFile = path.join(base, '.taskforge-cache.json');
@@ -178,7 +204,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     } else if (mode === 'why') {
       console.log(JSON.stringify(why(workflow, base, cacheFile, target), null, 2));
     } else {
-      const result = await execute(workflow, base, cacheFile, path.join(base, '.taskforge-journal.json'));
+      const result = await execute(workflow, base, cacheFile, path.join(base, '.taskforge-journal.json'), {prune});
       console.log(JSON.stringify(result, null, 2));
       process.exitCode = result.plan.success ? 0 : 1;
     }

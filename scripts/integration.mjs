@@ -59,5 +59,16 @@ try {
   assert.equal(explanation.outputs['generated.txt'].current,explanation.outputs['generated.txt'].cached,'outputs untouched so far');
   assert.deepEqual(why(workflow,base,cache,'validate').dependencies,[{id:'generate',status:'ready'}]);
   assert.throws(()=>why(workflow,base,cache,'ghost'),/Unknown task/);
-  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, retry, environment privacy, executable hashing, plan and why passed');
+
+  // --prune removes outputs the cache remembers for tasks that no longer exist, and nothing else.
+  assert.equal((await execute(workflow,base,cache,journal)).plan.success,true);
+  const trimmed = {tasks:[workflow.tasks[0]]};               // validate (and report.txt) is gone from the workflow
+  fs.writeFileSync(path.join(base,'unrelated.txt'),'keep');
+  const pruneRun = await execute(trimmed,base,cache,journal,{prune:true});
+  assert.deepEqual(pruneRun.pruned,['env.txt','report.txt','tool-out.txt'],'every cache-recorded output no current task declares');
+  assert.ok(!fs.existsSync(path.join(base,'report.txt')) && fs.existsSync(path.join(base,'unrelated.txt')) && fs.existsSync(path.join(base,'generated.txt')));
+  assert.ok(!('validate' in JSON.parse(fs.readFileSync(cache,'utf8'))),'cache entry of the removed task is dropped');
+  assert.equal(pruneRun.results.length,0,'the remaining task stays cached');
+  assert.ok(pruneRun.duration_ms>=0 && Array.isArray(pruneRun.waves));
+  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, retry, environment privacy, executable hashing, plan, why and prune passed');
 } finally { fs.rmSync(base,{recursive:true,force:true}); }

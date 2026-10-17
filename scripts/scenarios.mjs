@@ -72,7 +72,8 @@ await scenario('docs', async ({pass, read, write, status, executed, base}) => {
 
 await scenario('assets', async ({pass, read, write, status, executed, base, cache}) => {
   const first = await pass();
-  expect(first.waves.every(wave => wave.length <= 2), 'no wave exceeds the concurrency bound of 2');
+  expect(first.waves.every(wave => wave.tasks.length <= 2), 'no wave exceeds the concurrency bound of 2');
+  expect(first.duration_ms >= first.waves.reduce((sum, wave) => sum + wave.duration_ms, 0) && first.waves.every(wave => wave.duration_ms >= 0), 'run duration covers every wave');
   const attempts = first.results.filter(r => r.id === 'thumb-4');
   expect(attempts.length === 2 && attempts.every(r => r.timedOut), 'the slow asset times out on both attempts');
   expect(status(first.plan, 'thumb-4').status === 'failed' && status(first.plan, 'manifest').status === 'blocked', 'timeout fails the task and blocks the manifest');
