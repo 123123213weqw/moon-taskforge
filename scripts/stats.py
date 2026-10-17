@@ -24,7 +24,8 @@ def files():
     for path in sorted(root.rglob('*')):
         rel = path.relative_to(root)
         if path.is_file() and not any(part.startswith('.') and part != '.github' for part in rel.parts) \
-                and rel.parts[0] not in ('_build', 'target', '.mooncakes') and rel.name != 'LICENSE':
+                and rel.parts[0] not in ('_build', 'target', '.mooncakes') and '__pycache__' not in rel.parts \
+                and rel.name != 'LICENSE' and rel.suffix not in ('.pyc', '.png', '.jpg', '.gz', '.zip'):
             yield rel
 
 
