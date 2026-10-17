@@ -19,14 +19,15 @@ function atomic(file, value) {
 
 // On timeout the child gets SIGTERM and, after grace milliseconds, SIGKILL; with no grace it is
 // killed outright. A timed-out task is a failure whatever exit code the handler produces.
-function run(command, base, environment, timeout, grace = 0) {
+function run(command, base, environment, timeout, grace = 0, logFile) {
   return new Promise(resolve => {
     const started = Date.now();
     const child = spawn(command[0], command.slice(1), {cwd: base, env: {...process.env, ...environment}, shell: false, stdio: ['ignore','pipe','pipe']});
     children.add(child);
     let output = '', timedOut = false, error, escalation;
-    // Keep bounded diagnostics while continuously draining pipes.
-    const collect = chunk => { output = (output + chunk.toString()).slice(-65536); };
+    // The journal keeps a bounded tail; the log file receives everything, interleaved as it arrived.
+    const log = logFile ? fs.createWriteStream(logFile) : undefined;
+    const collect = chunk => { output = (output + chunk.toString()).slice(-65536); log?.write(chunk); };
     child.stdout.on('data', collect); child.stderr.on('data', collect);
     child.on('error', err => { error = err.message; });
     const timer = setTimeout(() => {
@@ -36,9 +37,16 @@ function run(command, base, environment, timeout, grace = 0) {
     }, timeout);
     child.on('close', (code, signal) => {
       clearTimeout(timer); clearTimeout(escalation); children.delete(child);
-      resolve({code, signal, timedOut, error, output, duration_ms: Date.now() - started});
+      const done = () => resolve({code, signal, timedOut, error, output, duration_ms: Date.now() - started});
+      log ? log.end(done) : done();
     });
   });
+}
+
+// Log file name for an attempt: the id made file-safe plus a short digest so distinct ids never collide.
+function logPath(base, id, attempt) {
+  const safe = id.replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 64);
+  return path.join(base, '.taskforge', 'logs', `${safe}-${sha256(id).slice(0, 8)}.${attempt}.log`);
 }
 
 const sha256 = data => createHash('sha256').update(data).digest('hex');
@@ -181,12 +189,14 @@ export async function execute(workflow, workspace, cacheFile, journalFile, optio
     const wave = {tasks: plan.ready.map(task => task.id), duration_ms: 0};
     const waveStarted = Date.now();
     waves.push(wave);
+    if (options.logs !== false) fs.mkdirSync(path.join(base, '.taskforge', 'logs'), {recursive: true});
     await Promise.all(plan.ready.map(async task => {
       let outcome;
       for (let attempt = 0; attempt <= task.retries; attempt++) {
         if (stopped()) return;
-        outcome = await run(task.command, base, environment, task.timeout_ms, task.grace_ms);
-        results.push({id: task.id, attempt: attempt + 1, ...outcome});
+        const log = options.logs !== false ? logPath(base, task.id, attempt + 1) : undefined;
+        outcome = await run(task.command, base, environment, task.timeout_ms, task.grace_ms, log);
+        results.push({id: task.id, attempt: attempt + 1, ...(log && {log: path.relative(base, log)}), ...outcome});
         if (outcome.code === 0 && !outcome.timedOut) break;
       }
       const outputsExist = task.outputs.every(name => {

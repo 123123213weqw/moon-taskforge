@@ -77,6 +77,15 @@ try {
   assert.equal(fs.readFileSync(path.join(base,'report.txt'),'utf8'),'second','skipped task did not run');
   assert.equal(targeted.plan.success,true);
 
+  // Every attempt's complete output goes to a log file; the journal keeps a bounded tail.
+  const chatty = await execute({tasks:[{id:'chat ty/1',command:[process.execPath,'-e',"process.stdout.write('x'.repeat(200000));process.stderr.write('END')"]}]},base,cache,journal);
+  const [attempt] = chatty.results;
+  assert.ok(attempt.output.length <= 65536 && attempt.output.endsWith('END'),'journal output is a bounded tail');
+  assert.match(attempt.log,/^\.taskforge\/logs\/chat_ty_1-[0-9a-f]{8}\.1\.log$/);
+  assert.equal(fs.statSync(path.join(base,attempt.log)).size,200003,'log file holds the full output');
+  const quiet = await execute({tasks:[{id:'quiet',command:[process.execPath,'-e','0']}]},base,cache,journal,{logs:false});
+  assert.ok(!('log' in quiet.results[0]),'logs can be disabled');
+
   // Cancellation through an AbortSignal stops the run, and the cache already holds the finished wave.
   const twoWaves = {tasks:[
     {id:'fast',command:[process.execPath,'-e',"require('fs').writeFileSync('fast.txt','done')"],outputs:['fast.txt']},
@@ -103,5 +112,5 @@ try {
   assert.ok(!('validate' in JSON.parse(fs.readFileSync(cache,'utf8'))),'cache entry of the removed task is dropped');
   assert.equal(pruneRun.results.length,0,'the remaining task stays cached');
   assert.ok(pruneRun.duration_ms>=0 && Array.isArray(pruneRun.waves));
-  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, graceful termination, retry, environment privacy, executable hashing, plan, why, cancellation and prune passed');
+  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, graceful termination, retry, environment privacy, executable hashing, plan, why, log files, cancellation and prune passed');
 } finally { fs.rmSync(base,{recursive:true,force:true}); }

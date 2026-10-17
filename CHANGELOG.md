@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Every attempt's complete output is written to `.taskforge/logs/<id>-<digest>.<attempt>.log` (disable with `options.logs: false`); the journal keeps its bounded 64 KiB tail and records the log path.
 - Tasks accept `grace_ms` (0-60000): on timeout the executor sends SIGTERM and escalates to SIGKILL after the grace period, so processes can clean up; a timed-out task still fails.
 - The cache is persisted before every wave, so a cancelled or interrupted run keeps its finished work and a rerun only repeats the wave that was in flight; `execute` accepts `options.signal` (an `AbortSignal`) for programmatic cancellation.
 - `propagate: "content"` enables early cutoff: dependencies only order execution and invalidation follows declared file digests, so a producer that reproduces identical outputs leaves its dependents cached. The default `fingerprint` mode is unchanged.
