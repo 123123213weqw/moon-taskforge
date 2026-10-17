@@ -25,10 +25,12 @@ moon update
 moon build --target js
 moon run cmd/main --target js -- examples/request.json       # plan a graph from a JSON request
 node _build/js/debug/build/cmd/main/main.js examples/request.json
-node scripts/execute.mjs examples/codegen/workflow.json WORKSPACE   # execute a workflow for real
+node scripts/execute.mjs examples/codegen/workflow.json WORKSPACE          # execute a workflow for real
+node scripts/execute.mjs --plan examples/codegen/workflow.json WORKSPACE   # hash and plan, execute nothing
+node scripts/execute.mjs --why test examples/codegen/workflow.json WORKSPACE   # explain one task against the cache
 ```
 
-Pass `-` to read a UTF-8 JSON request from stdin. A single request must be at most 16 MiB. Successful requests print one JSON result; invalid requests print `{"error": "..."}` and exit nonzero. The executor copies nothing: run it in a scratch copy of a scenario directory (`scripts/scenarios.mjs` does this automatically).
+Pass `-` to read a UTF-8 JSON request from stdin. A single request must be at most 16 MiB. Successful requests print one JSON result; invalid requests print `{"error": "..."}` and exit nonzero. The executor copies nothing: run it in a scratch copy of a scenario directory (`scripts/scenarios.mjs` does this automatically). `--plan` prints the plan the executor would start from without running or writing anything; `--why TASK` prints the task's status and reason, which fingerprint fields differ from its cache entry, current versus recorded output digests, and its dependencies' statuses. The cache file accumulates entries across workflows that share a workspace; a task that fails drops its entry.
 
 ## Library use
 

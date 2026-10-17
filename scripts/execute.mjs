@@ -80,18 +80,52 @@ function environmentDigests(environment) {
   return Object.fromEntries(Object.entries(environment).map(([name, value]) => [name, sha256(value)]));
 }
 
-export async function execute(workflow, workspace, cacheFile, journalFile) {
+// Everything a planning call needs that does not change during a run.
+function prepare(workflow, workspace, cacheFile) {
   const base = fs.realpathSync(workspace);
   if (!fs.statSync(base).isDirectory()) throw new Error('Workspace must be a directory');
-  // Validate the complete graph before executing any command.
+  // Validate the complete graph before touching the workspace or executing any command.
   engine({tasks: workflow.tasks, hashes: {}, concurrency: workflow.concurrency ?? 4});
-  const cache = fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, 'utf8')) : {};
-  const completed = {}, results = [], waves = [];
-  let initial;
   const environment = workflow.environment ?? {};
   for (const [name, value] of Object.entries(environment)) if (typeof value !== 'string' || name.includes('=')) throw new Error('Environment must map names to strings');
+  const cache = fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, 'utf8')) : {};
   const executables = executableDigests(workflow, base);
-  const fingerprintInputs = {environment: environmentDigests(environment), executables, concurrency: workflow.concurrency ?? 4};
+  return {base, cache, environment, executables,
+    fingerprintInputs: {environment: environmentDigests(environment), executables, concurrency: workflow.concurrency ?? 4}};
+}
+
+// Plans without executing anything or writing any file.
+export function plan(workflow, workspace, cacheFile) {
+  const {base, cache, fingerprintInputs, executables} = prepare(workflow, workspace, cacheFile);
+  const hashes = hashDeclaredFiles(workflow, base);
+  return {plan: engine({tasks: workflow.tasks, hashes, cache, completed: {}, ...fingerprintInputs}), hashes, cache, executables};
+}
+
+const canonical = value => JSON.stringify(value, (key, item) =>
+  item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.keys(item).sort().map(k => [k, item[k]])) : item);
+
+// Explains one task: its status and reason, which fingerprint fields differ from the cache
+// entry, the current versus recorded output digests, and the status of its dependencies.
+export function why(workflow, workspace, cacheFile, id) {
+  const {plan: current, hashes, cache} = plan(workflow, workspace, cacheFile);
+  const report = current.tasks.find(task => task.id === id);
+  if (!report) throw new Error('Unknown task: ' + id);
+  const task = workflow.tasks.find(candidate => candidate.id === id);
+  const entry = cache[id];
+  const fields = ['inputs', 'command', 'executable', 'environment', 'dependencies', 'outputs'];
+  return {
+    id, status: report.status, reason: report.reason, cache_entry: Boolean(entry),
+    changed_fields: entry ? fields.filter(field => canonical(entry.fingerprint?.[field] ?? null) !== canonical(report.fingerprint[field] ?? null)) : [],
+    outputs: Object.fromEntries((task.outputs ?? []).map(name => [name, {current: hashes[name] ?? null, cached: entry?.outputs?.[name] ?? null}])),
+    dependencies: (task.deps ?? []).map(dep => ({id: dep, status: current.tasks.find(candidate => candidate.id === dep).status})),
+    fingerprint: report.fingerprint,
+  };
+}
+
+export async function execute(workflow, workspace, cacheFile, journalFile) {
+  const {base, cache, environment, executables, fingerprintInputs} = prepare(workflow, workspace, cacheFile);
+  const completed = {}, results = [], waves = [];
+  let initial;
   let plan;
   for (;;) {
     if (cancelled) throw new Error('Execution cancelled');
@@ -116,19 +150,37 @@ export async function execute(workflow, workspace, cacheFile, journalFile) {
     }));
     atomic(journalFile, {version: 1, initial, executables, completed, results, waves, interrupted_runs_are_reexecuted: true});
   }
-  atomic(cacheFile, plan.cache);
+  // The cache accumulates across workflows that share a workspace; a task that failed drops its entry.
+  const refreshed = {...cache, ...plan.cache};
+  for (const task of plan.tasks) if (task.status === 'failed') delete refreshed[task.id];
+  atomic(cacheFile, refreshed);
   atomic(journalFile, {version: 1, initial, executables, completed, results, waves, plan});
   return {plan, initial, executables, results, waves};
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const [file, workspace = process.cwd()] = process.argv.slice(2);
-    if (!file) throw new Error('Usage: node scripts/execute.mjs workflow.json [workspace]');
+    const args = process.argv.slice(2);
+    let mode = 'execute', target;
+    while (args[0]?.startsWith('--')) {
+      const flag = args.shift();
+      if (flag === '--plan') mode = 'plan';
+      else if (flag === '--why') { mode = 'why'; target = args.shift(); }
+      else throw new Error('Unknown option ' + flag);
+    }
+    const [file, workspace = process.cwd()] = args;
+    if (!file || (mode === 'why' && !target)) throw new Error('Usage: node scripts/execute.mjs [--plan | --why TASK] workflow.json [workspace]');
     const base = fs.realpathSync(workspace);
-    const result = await execute(JSON.parse(fs.readFileSync(file, 'utf8')), base,
-      path.join(base, '.taskforge-cache.json'), path.join(base, '.taskforge-journal.json'));
-    console.log(JSON.stringify(result, null, 2));
-    process.exitCode = result.plan.success ? 0 : 1;
+    const workflow = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const cacheFile = path.join(base, '.taskforge-cache.json');
+    if (mode === 'plan') {
+      console.log(JSON.stringify(plan(workflow, base, cacheFile).plan, null, 2));
+    } else if (mode === 'why') {
+      console.log(JSON.stringify(why(workflow, base, cacheFile, target), null, 2));
+    } else {
+      const result = await execute(workflow, base, cacheFile, path.join(base, '.taskforge-journal.json'));
+      console.log(JSON.stringify(result, null, 2));
+      process.exitCode = result.plan.success ? 0 : 1;
+    }
   } catch (err) { console.error(err.message); process.exitCode = 1; }
 }

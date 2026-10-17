@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import {execute} from './execute.mjs';
+import {execute, plan, why} from './execute.mjs';
 const base = fs.mkdtempSync(path.join(os.tmpdir(), 'taskforge-integration-'));
 const cache = path.join(base, 'cache.json'), journal = path.join(base, 'journal.json');
 const workflow = {tasks: [
@@ -47,5 +47,17 @@ try {
   const edited = await execute(hashed,base,cache,journal);
   assert.equal(edited.initial.find(t=>t.id==='tool').reason,'fingerprint changed: executable');
   assert.equal(fs.readFileSync(path.join(base,'tool-out.txt'),'utf8'),'two');
-  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, retry, environment privacy and executable hashing passed');
+
+  // --plan only looks; --why explains a task against the cache.
+  fs.writeFileSync(path.join(base,'input.txt'),'third');
+  const preview = plan(workflow,base,cache);
+  assert.equal(preview.plan.tasks.find(t=>t.id==='generate').status,'ready');
+  assert.equal(fs.readFileSync(path.join(base,'report.txt'),'utf8'),'second','plan mode must not execute');
+  const explanation = why(workflow,base,cache,'generate');
+  assert.deepEqual(explanation.changed_fields,['inputs']);
+  assert.equal(explanation.reason,'fingerprint changed: inputs');
+  assert.equal(explanation.outputs['generated.txt'].current,explanation.outputs['generated.txt'].cached,'outputs untouched so far');
+  assert.deepEqual(why(workflow,base,cache,'validate').dependencies,[{id:'generate',status:'ready'}]);
+  assert.throws(()=>why(workflow,base,cache,'ghost'),/Unknown task/);
+  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, retry, environment privacy, executable hashing, plan and why passed');
 } finally { fs.rmSync(base,{recursive:true,force:true}); }

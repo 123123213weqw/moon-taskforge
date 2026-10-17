@@ -5,6 +5,8 @@
 - Requests may carry `executables` (program name to digest); when a task's program has a digest it is part of the fingerprint, so a changed tool invalidates the task. Fingerprints of hosts that do not supply digests are unchanged.
 - The executor hashes each task's program when the workflow sets `hash_executables: true` (explicit path or `PATH` lookup) and records the digests in the journal.
 - The executor passes only SHA-256 digests of environment values to the planner, so the cache and journal never contain raw environment values; invalidation on a changed value is unaffected.
+- `node scripts/execute.mjs --plan WORKFLOW [WORKSPACE]` hashes and plans without executing or writing anything; `--why TASK` explains a task: status, reason, changed fingerprint fields versus the cache entry, output digests current versus recorded, dependency statuses. Both are also exported as `plan` and `why` from the module.
+- The cache file now accumulates entries across runs and workflows sharing a workspace instead of being replaced; a task that failed drops its entry.
 
 ## 1.0.0 — 2026-10-16
 
