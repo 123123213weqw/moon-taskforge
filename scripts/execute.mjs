@@ -143,6 +143,14 @@ function pruneOrphans(workflow, base, cache) {
   return pruned.sort();
 }
 
+// Merges the finished work of a plan into the persisted cache; a task that failed drops its entry.
+function persistCache(cacheFile, cache, plan) {
+  const refreshed = {...cache, ...plan.cache};
+  for (const task of plan.tasks) if (task.status === 'failed') delete refreshed[task.id];
+  atomic(cacheFile, refreshed);
+  return refreshed;
+}
+
 export async function execute(workflow, workspace, cacheFile, journalFile, options = {}) {
   const started = Date.now();
   const {base, cache, environment, executables, fingerprintInputs} = prepare(workflow, workspace, cacheFile, options);
@@ -150,11 +158,18 @@ export async function execute(workflow, workspace, cacheFile, journalFile, optio
   const completed = {}, results = [], waves = [];
   let initial;
   let plan;
+  const signal = options.signal;
+  const stopped = () => cancelled || Boolean(signal?.aborted);
+  const onAbort = () => { for (const child of children) child.kill('SIGTERM'); };
+  signal?.addEventListener('abort', onAbort, {once: true});
+  try {
   for (;;) {
-    if (cancelled) throw new Error('Execution cancelled');
+    if (stopped()) throw new Error('Execution cancelled');
     plan = engine({tasks: workflow.tasks, hashes: hashDeclaredFiles(workflow, base), cache, completed, ...fingerprintInputs});
     // The first plan explains which tasks need work and why; later plans only report progress.
     initial ??= plan.tasks.map(({id, status, reason}) => ({id, status, reason}));
+    // Finished work is persisted before the next wave, so an interrupted run keeps it.
+    persistCache(cacheFile, cache, plan);
     if (plan.terminal) break;
     if (!plan.ready.length) throw new Error('Scheduler made no progress');
     const wave = {tasks: plan.ready.map(task => task.id), duration_ms: 0};
@@ -163,7 +178,7 @@ export async function execute(workflow, workspace, cacheFile, journalFile, optio
     await Promise.all(plan.ready.map(async task => {
       let outcome;
       for (let attempt = 0; attempt <= task.retries; attempt++) {
-        if (cancelled) return;
+        if (stopped()) return;
         outcome = await run(task.command, base, environment, task.timeout_ms);
         results.push({id: task.id, attempt: attempt + 1, ...outcome});
         if (outcome.code === 0 && !outcome.timedOut) break;
@@ -176,10 +191,7 @@ export async function execute(workflow, workspace, cacheFile, journalFile, optio
     wave.duration_ms = Date.now() - waveStarted;
     atomic(journalFile, {version: 1, initial, executables, pruned, completed, results, waves, interrupted_runs_are_reexecuted: true});
   }
-  // The cache accumulates across workflows that share a workspace; a task that failed drops its entry.
-  const refreshed = {...cache, ...plan.cache};
-  for (const task of plan.tasks) if (task.status === 'failed') delete refreshed[task.id];
-  atomic(cacheFile, refreshed);
+  } finally { signal?.removeEventListener('abort', onAbort); }
   const duration_ms = Date.now() - started;
   atomic(journalFile, {version: 1, initial, executables, pruned, completed, results, waves, duration_ms, plan});
   return {plan, initial, executables, pruned, results, waves, duration_ms};

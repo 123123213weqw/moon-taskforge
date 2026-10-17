@@ -68,15 +68,31 @@ try {
   assert.equal(fs.readFileSync(path.join(base,'report.txt'),'utf8'),'second','skipped task did not run');
   assert.equal(targeted.plan.success,true);
 
+  // Cancellation through an AbortSignal stops the run, and the cache already holds the finished wave.
+  const twoWaves = {tasks:[
+    {id:'fast',command:[process.execPath,'-e',"require('fs').writeFileSync('fast.txt','done')"],outputs:['fast.txt']},
+    {id:'slow',deps:['fast'],command:[process.execPath,'-e',"setTimeout(()=>require('fs').writeFileSync('slow.txt','late'),5000)"],inputs:['fast.txt'],outputs:['slow.txt']}]};
+  const controller = new AbortController();
+  const running = execute(twoWaves,base,cache,journal,{signal:controller.signal});
+  while (!fs.existsSync(path.join(base,'fast.txt'))) await new Promise(r=>setTimeout(r,20));
+  await new Promise(r=>setTimeout(r,200));
+  controller.abort();
+  await assert.rejects(running,/Execution cancelled/);
+  assert.ok('fast' in JSON.parse(fs.readFileSync(cache,'utf8')),'finished wave persisted before cancellation');
+  assert.ok(!fs.existsSync(path.join(base,'slow.txt')),'cancelled task produced nothing');
+  const resumed = await execute(twoWaves,base,cache,journal);
+  assert.deepEqual(resumed.results.map(r=>r.id),['slow'],'only the interrupted task runs again');
+  assert.equal(resumed.plan.success,true);
+
   // --prune removes outputs the cache remembers for tasks that no longer exist, and nothing else.
   assert.equal((await execute(workflow,base,cache,journal)).plan.success,true);
   const trimmed = {tasks:[workflow.tasks[0]]};               // validate (and report.txt) is gone from the workflow
   fs.writeFileSync(path.join(base,'unrelated.txt'),'keep');
   const pruneRun = await execute(trimmed,base,cache,journal,{prune:true});
-  assert.deepEqual(pruneRun.pruned,['env.txt','report.txt','tool-out.txt'],'every cache-recorded output no current task declares');
+  assert.deepEqual(pruneRun.pruned,['env.txt','fast.txt','report.txt','slow.txt','tool-out.txt'],'every cache-recorded output no current task declares');
   assert.ok(!fs.existsSync(path.join(base,'report.txt')) && fs.existsSync(path.join(base,'unrelated.txt')) && fs.existsSync(path.join(base,'generated.txt')));
   assert.ok(!('validate' in JSON.parse(fs.readFileSync(cache,'utf8'))),'cache entry of the removed task is dropped');
   assert.equal(pruneRun.results.length,0,'the remaining task stays cached');
   assert.ok(pruneRun.duration_ms>=0 && Array.isArray(pruneRun.waves));
-  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, retry, environment privacy, executable hashing, plan, why and prune passed');
+  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, retry, environment privacy, executable hashing, plan, why, cancellation and prune passed');
 } finally { fs.rmSync(base,{recursive:true,force:true}); }
