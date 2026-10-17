@@ -6,6 +6,7 @@ pub(all) struct Task {
   inputs : Array[String]
   outputs : Array[String]
   timeout_ms : Int32
+  grace_ms : Int32
   retries : Int32
 } derive(Eq)
 
@@ -91,6 +92,7 @@ pub fn load_tasks(value : Value) -> Array[Task] raise {
         86400000.0,
         "timeout_ms",
       ),
+      grace_ms: integer_in(get(item, "grace_ms"), 0.0, 0.0, 60000.0, "grace_ms"),
       retries: integer_in(get(item, "retries"), 0.0, 0.0, 10.0, "retries"),
     }
   }
@@ -381,6 +383,7 @@ pub fn run(request : Value) -> Value raise {
           ("command", strings(task.command)),
           ("outputs", strings(task.outputs)),
           ("timeout_ms", Number(task.timeout_ms.to_double())),
+          ("grace_ms", Number(task.grace_ms.to_double())),
           ("retries", Number(task.retries.to_double())),
         ]),
       )

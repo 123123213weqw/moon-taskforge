@@ -1691,6 +1691,43 @@
     "error": false
   },
   {
+    "name": "grace period is passed to the executor",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "timeout_ms": 1000,
+          "grace_ms": 500
+        }
+      ]
+    },
+    "expected": {
+      "ready/0/grace_ms": 500,
+      "ready/0/timeout_ms": 1000
+    },
+    "error": false,
+    "note": "grace_ms (0-60000, default 0) is how long the executor waits after SIGTERM before SIGKILL when a task times out; a timed-out task fails regardless."
+  },
+  {
+    "name": "grace above one minute rejected",
+    "request": {
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "x"
+          ],
+          "grace_ms": 60001
+        }
+      ]
+    },
+    "expected": {},
+    "error": true
+  },
+  {
     "name": "timeout above one day rejected",
     "request": {
       "tasks": [

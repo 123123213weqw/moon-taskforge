@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Tasks accept `grace_ms` (0-60000): on timeout the executor sends SIGTERM and escalates to SIGKILL after the grace period, so processes can clean up; a timed-out task still fails.
 - The cache is persisted before every wave, so a cancelled or interrupted run keeps its finished work and a rerun only repeats the wave that was in flight; `execute` accepts `options.signal` (an `AbortSignal`) for programmatic cancellation.
 - `propagate: "content"` enables early cutoff: dependencies only order execution and invalidation follows declared file digests, so a producer that reproduces identical outputs leaves its dependents cached. The default `fingerprint` mode is unchanged.
 - `targets` (request field, workflow field or repeated `--target` flag) limits a run to the named tasks and their transitive dependencies; other tasks are reported `skipped` and never scheduled.

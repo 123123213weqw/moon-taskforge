@@ -17,19 +17,25 @@ function atomic(file, value) {
   fs.renameSync(tmp, file);
 }
 
-function run(command, base, environment, timeout) {
+// On timeout the child gets SIGTERM and, after grace milliseconds, SIGKILL; with no grace it is
+// killed outright. A timed-out task is a failure whatever exit code the handler produces.
+function run(command, base, environment, timeout, grace = 0) {
   return new Promise(resolve => {
     const started = Date.now();
     const child = spawn(command[0], command.slice(1), {cwd: base, env: {...process.env, ...environment}, shell: false, stdio: ['ignore','pipe','pipe']});
     children.add(child);
-    let output = '', timedOut = false, error;
+    let output = '', timedOut = false, error, escalation;
     // Keep bounded diagnostics while continuously draining pipes.
     const collect = chunk => { output = (output + chunk.toString()).slice(-65536); };
     child.stdout.on('data', collect); child.stderr.on('data', collect);
     child.on('error', err => { error = err.message; });
-    const timer = setTimeout(() => { timedOut = true; child.kill('SIGKILL'); }, timeout);
+    const timer = setTimeout(() => {
+      timedOut = true;
+      if (grace > 0) { child.kill('SIGTERM'); escalation = setTimeout(() => child.kill('SIGKILL'), grace); }
+      else child.kill('SIGKILL');
+    }, timeout);
     child.on('close', (code, signal) => {
-      clearTimeout(timer); children.delete(child);
+      clearTimeout(timer); clearTimeout(escalation); children.delete(child);
       resolve({code, signal, timedOut, error, output, duration_ms: Date.now() - started});
     });
   });
@@ -179,7 +185,7 @@ export async function execute(workflow, workspace, cacheFile, journalFile, optio
       let outcome;
       for (let attempt = 0; attempt <= task.retries; attempt++) {
         if (stopped()) return;
-        outcome = await run(task.command, base, environment, task.timeout_ms);
+        outcome = await run(task.command, base, environment, task.timeout_ms, task.grace_ms);
         results.push({id: task.id, attempt: attempt + 1, ...outcome});
         if (outcome.code === 0 && !outcome.timedOut) break;
       }

@@ -532,6 +532,24 @@ test "timeout upper bound accepted" {
 }
 
 ///|
+test "grace period is passed to the executor" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"x\"],\"timeout_ms\":1000,\"grace_ms\":500}]}",
+    ),
+  )
+  assert_eq(test_at(result, ["ready", "0", "grace_ms"]), parse("500"))
+  assert_eq(test_at(result, ["ready", "0", "timeout_ms"]), parse("1000"))
+}
+
+///|
+test "grace above one minute rejected" {
+  assert_true(
+    fails("{\"tasks\":[{\"id\":\"a\",\"command\":[\"x\"],\"grace_ms\":60001}]}"),
+  )
+}
+
+///|
 test "timeout above one day rejected" {
   assert_true(
     fails(

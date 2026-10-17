@@ -1878,6 +1878,52 @@ Expected result fields:
 }
 ```
 
+## grace period is passed to the executor
+
+grace_ms (0-60000, default 0) is how long the executor waits after SIGTERM before SIGKILL when a task times out; a timed-out task fails regardless.
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "x"
+      ],
+      "timeout_ms": 1000,
+      "grace_ms": 500
+    }
+  ]
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "ready/0/grace_ms": 500,
+  "ready/0/timeout_ms": 1000
+}
+```
+
+## grace above one minute rejected
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "x"
+      ],
+      "grace_ms": 60001
+    }
+  ]
+}
+```
+
+Expected: nonzero exit with an input error.
+
 ## timeout above one day rejected
 
 ```json

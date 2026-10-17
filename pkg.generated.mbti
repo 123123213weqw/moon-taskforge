@@ -34,6 +34,7 @@ pub(all) struct Task {
   inputs : Array[String]
   outputs : Array[String]
   timeout_ms : Int
+  grace_ms : Int
   retries : Int
 } derive(Eq)
 pub fn Task::equal(Self, Self) -> Bool

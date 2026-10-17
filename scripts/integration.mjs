@@ -26,6 +26,15 @@ try {
   const timeout = await execute({tasks:[{id:'slow',command:[process.execPath,'-e','setTimeout(()=>{},10000)'],timeout_ms:50,retries:1}]},base,cache,journal);
   assert.equal(timeout.results.length,2); assert.ok(timeout.results.every(r=>r.timedOut));
 
+  // A grace period lets a timed-out process clean up on SIGTERM before SIGKILL; without one it is killed outright.
+  const trap = "process.on('SIGTERM',()=>{require('fs').writeFileSync(process.argv[1],'cleaned');process.exit(0)});setTimeout(()=>{},10000)";
+  const graceful = await execute({tasks:[
+    {id:'polite',command:[process.execPath,'-e',trap,'polite.txt'],timeout_ms:200,grace_ms:2000},
+    {id:'abrupt',command:[process.execPath,'-e',trap,'abrupt.txt'],timeout_ms:200}]},base,cache,journal);
+  assert.ok(graceful.results.every(r=>r.timedOut) && !graceful.plan.success,'timed-out tasks fail even when the handler exits 0');
+  assert.equal(fs.readFileSync(path.join(base,'polite.txt'),'utf8'),'cleaned','SIGTERM handler ran within the grace period');
+  assert.ok(!fs.existsSync(path.join(base,'abrupt.txt')),'no grace means SIGKILL before any handler');
+
   // Environment values reach the child process but only their digests reach the planner, cache and journal.
   const secret = 'fixture-secret-value-4471';
   const withEnv = {environment:{SECRET:secret},tasks:[{id:'env',command:[process.execPath,'-e',"require('fs').writeFileSync('env.txt',String(process.env.SECRET.length))"],outputs:['env.txt']}]};
@@ -94,5 +103,5 @@ try {
   assert.ok(!('validate' in JSON.parse(fs.readFileSync(cache,'utf8'))),'cache entry of the removed task is dropped');
   assert.equal(pruneRun.results.length,0,'the remaining task stays cached');
   assert.ok(pruneRun.duration_ms>=0 && Array.isArray(pruneRun.waves));
-  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, retry, environment privacy, executable hashing, plan, why, cancellation and prune passed');
+  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, graceful termination, retry, environment privacy, executable hashing, plan, why, cancellation and prune passed');
 } finally { fs.rmSync(base,{recursive:true,force:true}); }
