@@ -14,7 +14,7 @@ Incremental local task execution, implemented in MoonBit with a JSON CLI and reu
 - **Fingerprints and cache**: a task's fingerprint covers its command, declared input digests, declared outputs, the explicit environment and its dependencies' fingerprints. A cache entry is reused only when the fingerprint matches *and* every declared output still has the recorded digest; invalidation propagates transitively.
 - **Reasons**: every task report carries a `reason` — `fingerprint and outputs verified`, `fingerprint changed: inputs|command|environment|dependencies|outputs`, `outputs missing`, `outputs changed`, `no cache entry`, `no outputs declared`, `missing input: …`, `dependency failed: …`, `waiting for: …`, `concurrency limit reached`, or the executor's report.
 - **Summary**: ids grouped by status plus `rerun`, the failed and blocked tasks the next run will attempt, in execution order.
-- **Executor** (`scripts/execute.mjs`): hashes declared files with SHA-256, runs ready waves as child processes (argv, `shell=false`) with per-task timeouts and retries, verifies outputs exist before reporting success, writes an atomic cache file and a journal with the initial plan (why each task ran), every attempt's exit code, timeout flag, duration and bounded output, and the wave structure; SIGINT/SIGTERM cancel running children.
+- **Executor** (`scripts/execute.mjs`): hashes declared files with SHA-256, optionally hashes each task's program (`hash_executables: true`, resolved as an explicit path or on `PATH`) so a changed tool invalidates its tasks, passes only digests of environment values to the planner so caches and journals never hold raw values, runs ready waves as child processes (argv, `shell=false`) with per-task timeouts and retries, verifies outputs exist before reporting success, writes an atomic cache file and a journal with the initial plan (why each task ran), every attempt's exit code, timeout flag, duration and bounded output, and the wave structure; SIGINT/SIGTERM cancel running children.
 
 ## Build and run
 
@@ -82,7 +82,7 @@ moon test --target native               # requires a C compiler
 moon build --target js
 node scripts/check.mjs                  # the 30 fixtures through the real CLI
 python -B scripts/reference.py          # 100 task graphs vs an independent Python oracle
-node scripts/integration.mjs            # real subprocesses: cache hit, invalidation, failure, timeout, retry
+node scripts/integration.mjs            # real subprocesses: cache, invalidation, failure, timeout, retry, env privacy, tool hashing
 node scripts/scenarios.mjs              # the three scenarios, 33 checks
 python -B scripts/fixtures.py --check   # generated tests and usage guide match tests/cases.json
 python -B scripts/stats.py              # source statistics by category
@@ -93,6 +93,6 @@ sh scripts/consume.sh REGISTRY_VERSION  # fresh module consumes the published pa
 
 ## Current boundaries
 
-Commands are argv arrays with `shell=false`. This is a local executor, not a security sandbox: supplied commands have the current user's rights. Cache identity includes declared inputs and the explicit environment; undeclared files, executable changes and inherited environment are not hermetic. Tasks without outputs always execute, and so does anything that depends on them. There is no early cutoff on identical *dependency* fingerprints beyond content hashing: a dependent reruns when its producer's fingerprint changed even if the produced bytes did not. Journals record results, but interrupted tasks are re-executed; side effects should be idempotent. Killing a task targets its direct child process, not every grandchild. Output diagnostics are capped at 64 KiB; cache and journal files can contain explicit environment values. Concurrent hostile workspace mutation is not isolated. See [docs/boundaries.md](docs/boundaries.md).
+Commands are argv arrays with `shell=false`. This is a local executor, not a security sandbox: supplied commands have the current user's rights. Cache identity includes declared inputs, the explicit environment and, with `hash_executables`, each task's program; undeclared files, libraries loaded by programs and the inherited environment are not hermetic. Tasks without outputs always execute, and so does anything that depends on them. There is no early cutoff on identical *dependency* fingerprints beyond content hashing: a dependent reruns when its producer's fingerprint changed even if the produced bytes did not. Journals record results, but interrupted tasks are re-executed; side effects should be idempotent. Killing a task targets its direct child process, not every grandchild. Output diagnostics are capped at 64 KiB and can contain whatever commands print; environment values appear only as digests. Concurrent hostile workspace mutation is not isolated. See [docs/boundaries.md](docs/boundaries.md).
 
 See [source and dependency attribution](THIRD_PARTY.md). This release does not establish competition eligibility or organizer acceptance.

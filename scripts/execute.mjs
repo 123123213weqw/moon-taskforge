@@ -35,16 +35,49 @@ function run(command, base, environment, timeout) {
   });
 }
 
+const sha256 = data => createHash('sha256').update(data).digest('hex');
+
 function hashDeclaredFiles(workflow, base) {
   const hashes = {};
   for (const task of workflow.tasks) for (const name of [...(task.inputs ?? []), ...(task.outputs ?? [])]) {
     const file = safeFile(base, name);
     if (fs.existsSync(file)) {
       if (!fs.statSync(file).isFile()) throw new Error('Declared path must be a regular file');
-      hashes[name] = createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+      hashes[name] = sha256(fs.readFileSync(file));
     }
   }
   return hashes;
+}
+
+// A program with a path separator is taken relative to the workspace (or absolute);
+// a bare name is searched on PATH like a POSIX shell would.
+function resolveExecutable(program, base) {
+  const isFile = file => { try { return fs.statSync(file).isFile(); } catch { return false; } };
+  if (program.includes('/') || program.includes(path.sep)) {
+    const file = path.isAbsolute(program) ? program : path.resolve(base, program);
+    return isFile(file) ? file : undefined;
+  }
+  for (const dir of (process.env.PATH ?? '').split(path.delimiter)) {
+    if (dir && isFile(path.join(dir, program))) return path.join(dir, program);
+  }
+  return undefined;
+}
+
+export function executableDigests(workflow, base) {
+  const digests = {};
+  if (!workflow.hash_executables) return digests;
+  for (const task of workflow.tasks) {
+    const program = task.command[0];
+    if (program in digests) continue;
+    const file = resolveExecutable(program, base);
+    if (file) digests[program] = sha256(fs.readFileSync(file));
+  }
+  return digests;
+}
+
+// The planner, cache and journal only ever see digests of environment values.
+function environmentDigests(environment) {
+  return Object.fromEntries(Object.entries(environment).map(([name, value]) => [name, sha256(value)]));
 }
 
 export async function execute(workflow, workspace, cacheFile, journalFile) {
@@ -57,11 +90,12 @@ export async function execute(workflow, workspace, cacheFile, journalFile) {
   let initial;
   const environment = workflow.environment ?? {};
   for (const [name, value] of Object.entries(environment)) if (typeof value !== 'string' || name.includes('=')) throw new Error('Environment must map names to strings');
+  const executables = executableDigests(workflow, base);
+  const fingerprintInputs = {environment: environmentDigests(environment), executables, concurrency: workflow.concurrency ?? 4};
   let plan;
   for (;;) {
     if (cancelled) throw new Error('Execution cancelled');
-    plan = engine({tasks: workflow.tasks, hashes: hashDeclaredFiles(workflow, base), cache, completed, environment,
-      concurrency: workflow.concurrency ?? 4});
+    plan = engine({tasks: workflow.tasks, hashes: hashDeclaredFiles(workflow, base), cache, completed, ...fingerprintInputs});
     // The first plan explains which tasks need work and why; later plans only report progress.
     initial ??= plan.tasks.map(({id, status, reason}) => ({id, status, reason}));
     if (plan.terminal) break;
@@ -80,11 +114,11 @@ export async function execute(workflow, workspace, cacheFile, journalFile) {
       });
       completed[task.id] = outcome?.code === 0 && !outcome?.timedOut && outputsExist ? 'success' : 'failed';
     }));
-    atomic(journalFile, {version: 1, initial, completed, results, waves, interrupted_runs_are_reexecuted: true});
+    atomic(journalFile, {version: 1, initial, executables, completed, results, waves, interrupted_runs_are_reexecuted: true});
   }
   atomic(cacheFile, plan.cache);
-  atomic(journalFile, {version: 1, initial, completed, results, waves, plan});
-  return {plan, initial, results, waves};
+  atomic(journalFile, {version: 1, initial, executables, completed, results, waves, plan});
+  return {plan, initial, executables, results, waves};
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

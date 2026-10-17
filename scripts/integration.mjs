@@ -25,5 +25,27 @@ try {
   assert.equal(report.plan.success,false); assert.equal(report.plan.tasks[1].status,'blocked');
   const timeout = await execute({tasks:[{id:'slow',command:[process.execPath,'-e','setTimeout(()=>{},10000)'],timeout_ms:50,retries:1}]},base,cache,journal);
   assert.equal(timeout.results.length,2); assert.ok(timeout.results.every(r=>r.timedOut));
-  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout and retry passed');
+
+  // Environment values reach the child process but only their digests reach the planner, cache and journal.
+  const secret = 'fixture-secret-value-4471';
+  const withEnv = {environment:{SECRET:secret},tasks:[{id:'env',command:[process.execPath,'-e',"require('fs').writeFileSync('env.txt',String(process.env.SECRET.length))"],outputs:['env.txt']}]};
+  assert.equal((await execute(withEnv,base,cache,journal)).plan.success,true);
+  assert.equal(fs.readFileSync(path.join(base,'env.txt'),'utf8'),String(secret.length));
+  for (const file of [cache,journal]) assert.ok(!fs.readFileSync(file,'utf8').includes(secret),'raw environment value leaked into '+path.basename(file));
+  assert.equal((await execute(withEnv,base,cache,journal)).results.length,0);
+  const rotated = await execute({...withEnv,environment:{SECRET:secret+'-rotated'}},base,cache,journal);
+  assert.equal(rotated.initial.find(t=>t.id==='env').reason,'fingerprint changed: environment');
+
+  // With hash_executables the program itself is fingerprinted, even when it is not a declared input.
+  const tool = path.join(base,'tool.sh');
+  fs.writeFileSync(tool,'#!/bin/sh\nprintf one > tool-out.txt\n',{mode:0o755});
+  const hashed = {hash_executables:true,tasks:[{id:'tool',command:['./tool.sh'],outputs:['tool-out.txt']}]};
+  const first = await execute(hashed,base,cache,journal);
+  assert.equal(first.plan.success,true); assert.match(first.executables['./tool.sh'],/^[0-9a-f]{64}$/);
+  assert.equal((await execute(hashed,base,cache,journal)).results.length,0);
+  fs.writeFileSync(tool,'#!/bin/sh\nprintf two > tool-out.txt\n',{mode:0o755});
+  const edited = await execute(hashed,base,cache,journal);
+  assert.equal(edited.initial.find(t=>t.id==='tool').reason,'fingerprint changed: executable');
+  assert.equal(fs.readFileSync(path.join(base,'tool-out.txt'),'utf8'),'two');
+  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, retry, environment privacy and executable hashing passed');
 } finally { fs.rmSync(base,{recursive:true,force:true}); }

@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Requests may carry `executables` (program name to digest); when a task's program has a digest it is part of the fingerprint, so a changed tool invalidates the task. Fingerprints of hosts that do not supply digests are unchanged.
+- The executor hashes each task's program when the workflow sets `hash_executables: true` (explicit path or `PATH` lookup) and records the digests in the journal.
+- The executor passes only SHA-256 digests of environment values to the planner, so the cache and journal never contain raw environment values; invalidation on a changed value is unaffected.
 
 ## 1.0.0 — 2026-10-16
 
