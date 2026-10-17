@@ -204,7 +204,7 @@ test "deterministic order by id" {
 test "cache hit verified" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":2,\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"dependencies\":{},\"digest\":\"f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c\"},\"outputs\":{\"a.txt\":\"ha\"}}}}",
     ),
   )
   assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"cached\""))
@@ -224,7 +224,7 @@ test "cache hit verified" {
 test "input change invalidates" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h2\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h2\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":2,\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"dependencies\":{},\"digest\":\"f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c\"},\"outputs\":{\"a.txt\":\"ha\"}}}}",
     ),
   )
   assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
@@ -238,7 +238,7 @@ test "input change invalidates" {
 test "command change invalidates" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"changed\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"changed\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":2,\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"dependencies\":{},\"digest\":\"f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c\"},\"outputs\":{\"a.txt\":\"ha\"}}}}",
     ),
   )
   assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
@@ -252,7 +252,7 @@ test "command change invalidates" {
 test "environment change invalidates" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}},\"environment\":{\"MODE\":\"release\"}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":2,\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"dependencies\":{},\"digest\":\"f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c\"},\"outputs\":{\"a.txt\":\"ha\"}}},\"environment\":{\"MODE\":\"release\"}}",
     ),
   )
   assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
@@ -266,7 +266,7 @@ test "environment change invalidates" {
 test "executable digest invalidates" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}},\"executables\":{\"echo\":\"e1\"}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":2,\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"dependencies\":{},\"digest\":\"f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c\"},\"outputs\":{\"a.txt\":\"ha\"}}},\"executables\":{\"echo\":\"e1\"}}",
     ),
   )
   assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
@@ -284,7 +284,7 @@ test "executable digest invalidates" {
 test "executable digest round trip" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"dependencies\":{},\"environment\":{},\"executable\":\"e1\",\"outputs\":[\"a.txt\"],\"inputs\":{\"in.txt\":\"h\"},\"command\":[\"echo\",\"a\"],\"version\":1},\"outputs\":{\"a.txt\":\"ha\"}}},\"executables\":{\"echo\":\"e1\"}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"digest\":\"bff1a7e5518e2896c7832b606da21a51fecbf6ba5703c424b9fb18f87b62bec3\",\"dependencies\":{},\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"executable\":\"e1\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"version\":2},\"outputs\":{\"a.txt\":\"ha\"}}},\"executables\":{\"echo\":\"e1\"}}",
     ),
   )
   assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"cached\""))
@@ -303,7 +303,7 @@ test "executable digests must be strings" {
 test "forged cache outputs rejected" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"tampered\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"tampered\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":2,\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"dependencies\":{},\"digest\":\"f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c\"},\"outputs\":{\"a.txt\":\"ha\"}}}}",
     ),
   )
   assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
@@ -317,7 +317,7 @@ test "forged cache outputs rejected" {
 test "outputs missing reruns" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]}],\"hashes\":{\"in.txt\":\"h\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":2,\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"dependencies\":{},\"digest\":\"f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c\"},\"outputs\":{\"a.txt\":\"ha\"}}}}",
     ),
   )
   assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
@@ -345,7 +345,7 @@ test "no outputs always runs" {
 test "transitive invalidation" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]},{\"id\":\"b\",\"command\":[\"echo\",\"b\"],\"deps\":[\"a\"],\"inputs\":[\"a.txt\"],\"outputs\":[\"b.txt\"]},{\"id\":\"c\",\"command\":[\"echo\",\"c\"],\"deps\":[\"b\"],\"inputs\":[\"b.txt\"],\"outputs\":[\"c.txt\"]}],\"hashes\":{\"in.txt\":\"h2\",\"a.txt\":\"ha\",\"b.txt\":\"hb\",\"c.txt\":\"hc\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]},{\"id\":\"b\",\"command\":[\"echo\",\"b\"],\"deps\":[\"a\"],\"inputs\":[\"a.txt\"],\"outputs\":[\"b.txt\"]},{\"id\":\"c\",\"command\":[\"echo\",\"c\"],\"deps\":[\"b\"],\"inputs\":[\"b.txt\"],\"outputs\":[\"c.txt\"]}],\"hashes\":{\"in.txt\":\"h2\",\"a.txt\":\"ha\",\"b.txt\":\"hb\",\"c.txt\":\"hc\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":2,\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"dependencies\":{},\"digest\":\"f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c\"},\"outputs\":{\"a.txt\":\"ha\"}}}}",
     ),
   )
   assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
@@ -383,7 +383,7 @@ test "paths with spaces" {
 test "summary groups" {
   let result = run(
     parse(
-      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]},{\"id\":\"b\",\"command\":[\"echo\",\"b\"]},{\"id\":\"c\",\"command\":[\"echo\",\"c\"],\"deps\":[\"b\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":1,\"command\":[\"echo\",\"a\"],\"inputs\":{\"in.txt\":\"h\"},\"outputs\":[\"a.txt\"],\"environment\":{},\"dependencies\":{}},\"outputs\":{\"a.txt\":\"ha\"}}},\"completed\":{\"b\":\"failed\"}}",
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"in.txt\"],\"outputs\":[\"a.txt\"]},{\"id\":\"b\",\"command\":[\"echo\",\"b\"]},{\"id\":\"c\",\"command\":[\"echo\",\"c\"],\"deps\":[\"b\"]}],\"hashes\":{\"in.txt\":\"h\",\"a.txt\":\"ha\"},\"cache\":{\"a\":{\"fingerprint\":{\"version\":2,\"command\":\"8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4\",\"inputs\":\"c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9\",\"outputs\":\"3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8\",\"environment\":\"44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"dependencies\":{},\"digest\":\"f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c\"},\"outputs\":{\"a.txt\":\"ha\"}}},\"completed\":{\"b\":\"failed\"}}",
     ),
   )
   assert_eq(test_at(result, ["summary", "cached"]), parse("[\"a\"]"))
@@ -392,6 +392,122 @@ test "summary groups" {
   assert_eq(test_at(result, ["summary", "rerun"]), parse("[\"b\",\"c\"]"))
   assert_eq(test_at(result, ["terminal"]), parse("true"))
   assert_eq(test_at(result, ["success"]), parse("false"))
+}
+
+///|
+test "deep chain waits link by link" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"t0\",\"command\":[\"build\",\"0\"],\"inputs\":[\"src.txt\"],\"outputs\":[\"o0\"]},{\"id\":\"t1\",\"command\":[\"build\",\"1\"],\"deps\":[\"t0\"],\"inputs\":[\"o0\"],\"outputs\":[\"o1\"]},{\"id\":\"t2\",\"command\":[\"build\",\"2\"],\"deps\":[\"t1\"],\"inputs\":[\"o1\"],\"outputs\":[\"o2\"]},{\"id\":\"t3\",\"command\":[\"build\",\"3\"],\"deps\":[\"t2\"],\"inputs\":[\"o2\"],\"outputs\":[\"o3\"]},{\"id\":\"t4\",\"command\":[\"build\",\"4\"],\"deps\":[\"t3\"],\"inputs\":[\"o3\"],\"outputs\":[\"o4\"]},{\"id\":\"t5\",\"command\":[\"build\",\"5\"],\"deps\":[\"t4\"],\"inputs\":[\"o4\"],\"outputs\":[\"o5\"]},{\"id\":\"t6\",\"command\":[\"build\",\"6\"],\"deps\":[\"t5\"],\"inputs\":[\"o5\"],\"outputs\":[\"o6\"]},{\"id\":\"t7\",\"command\":[\"build\",\"7\"],\"deps\":[\"t6\"],\"inputs\":[\"o6\"],\"outputs\":[\"o7\"]}],\"hashes\":{\"src.txt\":\"h\"}}",
+    ),
+  )
+  assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
+  assert_eq(
+    test_at(result, ["tasks", "1", "reason"]),
+    parse("\"waiting for: t0\""),
+  )
+  assert_eq(
+    test_at(result, ["tasks", "7", "reason"]),
+    parse("\"waiting for: t6\""),
+  )
+  assert_eq(
+    test_at(result, ["summary", "waiting"]),
+    parse("[\"t1\",\"t2\",\"t3\",\"t4\",\"t5\",\"t6\",\"t7\"]"),
+  )
+  assert_eq(test_at(result, ["terminal"]), parse("false"))
+}
+
+///|
+test "wide fan-in respects concurrency" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"p0\",\"command\":[\"make\",\"0\"],\"outputs\":[\"p0.out\"]},{\"id\":\"p1\",\"command\":[\"make\",\"1\"],\"outputs\":[\"p1.out\"]},{\"id\":\"p2\",\"command\":[\"make\",\"2\"],\"outputs\":[\"p2.out\"]},{\"id\":\"p3\",\"command\":[\"make\",\"3\"],\"outputs\":[\"p3.out\"]},{\"id\":\"p4\",\"command\":[\"make\",\"4\"],\"outputs\":[\"p4.out\"]},{\"id\":\"p5\",\"command\":[\"make\",\"5\"],\"outputs\":[\"p5.out\"]},{\"id\":\"join\",\"command\":[\"join\"],\"deps\":[\"p0\",\"p1\",\"p2\",\"p3\",\"p4\",\"p5\"],\"inputs\":[\"p0.out\",\"p1.out\",\"p2.out\",\"p3.out\",\"p4.out\",\"p5.out\"],\"outputs\":[\"joined\"]}],\"concurrency\":4}",
+    ),
+  )
+  assert_eq(
+    test_at(result, ["summary", "ready"]),
+    parse("[\"p0\",\"p1\",\"p2\",\"p3\"]"),
+  )
+  assert_eq(
+    test_at(result, ["tasks", "4", "reason"]),
+    parse("\"concurrency limit reached\""),
+  )
+  assert_eq(test_at(result, ["tasks", "6", "id"]), parse("\"join\""))
+  assert_eq(
+    test_at(result, ["tasks", "6", "reason"]),
+    parse("\"waiting for: p0, p1, p2, p3, p4, p5\""),
+  )
+}
+
+///|
+test "timeout upper bound accepted" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"x\"],\"timeout_ms\":86400000,\"retries\":10}],\"concurrency\":256}",
+    ),
+  )
+  assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
+  assert_eq(test_at(result, ["ready", "0", "timeout_ms"]), parse("86400000"))
+  assert_eq(test_at(result, ["ready", "0", "retries"]), parse("10"))
+}
+
+///|
+test "timeout above one day rejected" {
+  assert_true(
+    fails(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"x\"],\"timeout_ms\":86400001}]}",
+    ),
+  )
+}
+
+///|
+test "fractional timeout rejected" {
+  assert_true(
+    fails("{\"tasks\":[{\"id\":\"a\",\"command\":[\"x\"],\"timeout_ms\":1.5}]}"),
+  )
+}
+
+///|
+test "concurrency above limit rejected" {
+  assert_true(
+    fails(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"x\"]}],\"concurrency\":257}",
+    ),
+  )
+}
+
+///|
+test "unicode ids order by code unit" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"b\",\"command\":[\"x\"]},{\"id\":\"构建\",\"command\":[\"x\"]},{\"id\":\"a\",\"command\":[\"x\"]},{\"id\":\"Ärger\",\"command\":[\"x\"]}]}",
+    ),
+  )
+  assert_eq(test_at(result, ["tasks", "0", "id"]), parse("\"a\""))
+  assert_eq(test_at(result, ["tasks", "1", "id"]), parse("\"b\""))
+  assert_eq(test_at(result, ["tasks", "2", "id"]), parse("\"Ärger\""))
+  assert_eq(test_at(result, ["tasks", "3", "id"]), parse("\"构建\""))
+}
+
+///|
+test "nested output directories" {
+  let result = run(
+    parse(
+      "{\"tasks\":[{\"id\":\"a\",\"command\":[\"x\"],\"outputs\":[\"dist/a/b.txt\",\"dist/a/c.txt\"]}]}",
+    ),
+  )
+  assert_eq(test_at(result, ["tasks", "0", "status"]), parse("\"ready\""))
+  assert_eq(
+    test_at(result, ["ready", "0", "outputs"]),
+    parse("[\"dist/a/b.txt\",\"dist/a/c.txt\"]"),
+  )
+}
+
+///|
+test "self dependency rejected" {
+  assert_true(
+    fails("{\"tasks\":[{\"id\":\"a\",\"command\":[\"x\"],\"deps\":[\"a\"]}]}"),
+  )
 }
 
 ///|

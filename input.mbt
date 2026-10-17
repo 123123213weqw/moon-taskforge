@@ -92,3 +92,20 @@ fn optional_strings(value : Value) -> Array[String] raise {
 fn sort_lexical(items : Array[String]) -> Unit {
   items.sort_by(String::lexical_compare)
 }
+
+///|
+fn canonical(value : Value) -> String {
+  match value {
+    Object(fields) => {
+      let keys = fields.keys().collect()
+      sort_lexical(keys)
+      "{" +
+      keys
+      .map(k => String(k).stringify() + ":" + canonical(fields[k]))
+      .join(",") +
+      "}"
+    }
+    Array(items) => "[" + items.map(canonical).join(",") + "]"
+    _ => value.stringify()
+  }
+}

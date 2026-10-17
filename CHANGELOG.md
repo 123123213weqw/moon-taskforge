@@ -9,6 +9,8 @@
 - The cache file now accumulates entries across runs and workflows sharing a workspace instead of being replaced; a task that failed drops its entry.
 - `--prune` deletes files the cache records as outputs that no current task declares and drops cache entries of removed tasks; `pruned` lists them in the result and journal.
 - Results and journals report `duration_ms` for the run and `{tasks, duration_ms}` per wave.
+- Fingerprints are now Merkle nodes (fingerprint version 2): SHA-256 digests of each field, dependencies' node digests, and the node's own digest. Reports and caches stay constant-size per task — a 200-task chain's report shrinks from 194 MB to 278 KB and plans in 0.09 s instead of 0.93 s. SHA-256 is implemented in the package and exposed as `digest(String)`; version 1 caches are rebuilt once.
+- Stress fixtures (deep chain, wide fan-in, limits, unicode ids, self-dependency) and oracle checks for structured 200-task chains and 150-way fan-ins, with every fingerprint node verified against an independent Python computation.
 
 ## 1.0.0 — 2026-10-16
 

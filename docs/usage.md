@@ -548,19 +548,13 @@ A cache entry is reused only when the fingerprint matches and every declared out
   "cache": {
     "a": {
       "fingerprint": {
-        "version": 1,
-        "command": [
-          "echo",
-          "a"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "outputs": [
-          "a.txt"
-        ],
-        "environment": {},
-        "dependencies": {}
+        "version": 2,
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "dependencies": {},
+        "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
       },
       "outputs": {
         "a.txt": "ha"
@@ -608,19 +602,13 @@ Expected result fields:
   "cache": {
     "a": {
       "fingerprint": {
-        "version": 1,
-        "command": [
-          "echo",
-          "a"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "outputs": [
-          "a.txt"
-        ],
-        "environment": {},
-        "dependencies": {}
+        "version": 2,
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "dependencies": {},
+        "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
       },
       "outputs": {
         "a.txt": "ha"
@@ -665,19 +653,13 @@ Expected result fields:
   "cache": {
     "a": {
       "fingerprint": {
-        "version": 1,
-        "command": [
-          "echo",
-          "a"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "outputs": [
-          "a.txt"
-        ],
-        "environment": {},
-        "dependencies": {}
+        "version": 2,
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "dependencies": {},
+        "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
       },
       "outputs": {
         "a.txt": "ha"
@@ -722,19 +704,13 @@ Expected result fields:
   "cache": {
     "a": {
       "fingerprint": {
-        "version": 1,
-        "command": [
-          "echo",
-          "a"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "outputs": [
-          "a.txt"
-        ],
-        "environment": {},
-        "dependencies": {}
+        "version": 2,
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "dependencies": {},
+        "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
       },
       "outputs": {
         "a.txt": "ha"
@@ -784,19 +760,13 @@ When the host supplies a digest for a task's program it becomes part of the fing
   "cache": {
     "a": {
       "fingerprint": {
-        "version": 1,
-        "command": [
-          "echo",
-          "a"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "outputs": [
-          "a.txt"
-        ],
-        "environment": {},
-        "dependencies": {}
+        "version": 2,
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "dependencies": {},
+        "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
       },
       "outputs": {
         "a.txt": "ha"
@@ -847,20 +817,14 @@ Fingerprints are compared structurally: the cached entry here lists its fields i
   "cache": {
     "a": {
       "fingerprint": {
+        "digest": "bff1a7e5518e2896c7832b606da21a51fecbf6ba5703c424b9fb18f87b62bec3",
         "dependencies": {},
-        "environment": {},
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
         "executable": "e1",
-        "outputs": [
-          "a.txt"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "command": [
-          "echo",
-          "a"
-        ],
-        "version": 1
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "version": 2
       },
       "outputs": {
         "a.txt": "ha"
@@ -936,19 +900,13 @@ A cache entry whose recorded output digest no longer matches the file is not tru
   "cache": {
     "a": {
       "fingerprint": {
-        "version": 1,
-        "command": [
-          "echo",
-          "a"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "outputs": [
-          "a.txt"
-        ],
-        "environment": {},
-        "dependencies": {}
+        "version": 2,
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "dependencies": {},
+        "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
       },
       "outputs": {
         "a.txt": "ha"
@@ -992,19 +950,13 @@ Expected result fields:
   "cache": {
     "a": {
       "fingerprint": {
-        "version": 1,
-        "command": [
-          "echo",
-          "a"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "outputs": [
-          "a.txt"
-        ],
-        "environment": {},
-        "dependencies": {}
+        "version": 2,
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "dependencies": {},
+        "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
       },
       "outputs": {
         "a.txt": "ha"
@@ -1116,19 +1068,13 @@ Dependents cannot be judged until the changed producer has run again; their fing
   "cache": {
     "a": {
       "fingerprint": {
-        "version": 1,
-        "command": [
-          "echo",
-          "a"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "outputs": [
-          "a.txt"
-        ],
-        "environment": {},
-        "dependencies": {}
+        "version": 2,
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "dependencies": {},
+        "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
       },
       "outputs": {
         "a.txt": "ha"
@@ -1227,19 +1173,13 @@ Expected result fields:
   "cache": {
     "a": {
       "fingerprint": {
-        "version": 1,
-        "command": [
-          "echo",
-          "a"
-        ],
-        "inputs": {
-          "in.txt": "h"
-        },
-        "outputs": [
-          "a.txt"
-        ],
-        "environment": {},
-        "dependencies": {}
+        "version": 2,
+        "command": "8660d5d12a2de6a799d4fbf13dd577991ccb2a84779b1c0502863eb599a186e4",
+        "inputs": "c0a33e57511793ecf260f2ed34e72f52afccd5094212d877752c04d8d6e762e9",
+        "outputs": "3169ba9e29527082ac0a22ae78e46eca5efc1f58ff2b47d42c36100b4d9252a8",
+        "environment": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+        "dependencies": {},
+        "digest": "f74b7952fadcd18580b578ed9b34d3705ed4f833f7e37fbd69eba79d313c2e9c"
       },
       "outputs": {
         "a.txt": "ha"
@@ -1273,6 +1213,455 @@ Expected result fields:
   "success": false
 }
 ```
+
+## deep chain waits link by link
+
+```json
+{
+  "tasks": [
+    {
+      "id": "t0",
+      "command": [
+        "build",
+        "0"
+      ],
+      "inputs": [
+        "src.txt"
+      ],
+      "outputs": [
+        "o0"
+      ]
+    },
+    {
+      "id": "t1",
+      "command": [
+        "build",
+        "1"
+      ],
+      "deps": [
+        "t0"
+      ],
+      "inputs": [
+        "o0"
+      ],
+      "outputs": [
+        "o1"
+      ]
+    },
+    {
+      "id": "t2",
+      "command": [
+        "build",
+        "2"
+      ],
+      "deps": [
+        "t1"
+      ],
+      "inputs": [
+        "o1"
+      ],
+      "outputs": [
+        "o2"
+      ]
+    },
+    {
+      "id": "t3",
+      "command": [
+        "build",
+        "3"
+      ],
+      "deps": [
+        "t2"
+      ],
+      "inputs": [
+        "o2"
+      ],
+      "outputs": [
+        "o3"
+      ]
+    },
+    {
+      "id": "t4",
+      "command": [
+        "build",
+        "4"
+      ],
+      "deps": [
+        "t3"
+      ],
+      "inputs": [
+        "o3"
+      ],
+      "outputs": [
+        "o4"
+      ]
+    },
+    {
+      "id": "t5",
+      "command": [
+        "build",
+        "5"
+      ],
+      "deps": [
+        "t4"
+      ],
+      "inputs": [
+        "o4"
+      ],
+      "outputs": [
+        "o5"
+      ]
+    },
+    {
+      "id": "t6",
+      "command": [
+        "build",
+        "6"
+      ],
+      "deps": [
+        "t5"
+      ],
+      "inputs": [
+        "o5"
+      ],
+      "outputs": [
+        "o6"
+      ]
+    },
+    {
+      "id": "t7",
+      "command": [
+        "build",
+        "7"
+      ],
+      "deps": [
+        "t6"
+      ],
+      "inputs": [
+        "o6"
+      ],
+      "outputs": [
+        "o7"
+      ]
+    }
+  ],
+  "hashes": {
+    "src.txt": "h"
+  }
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "tasks/0/status": "ready",
+  "tasks/1/reason": "waiting for: t0",
+  "tasks/7/reason": "waiting for: t6",
+  "summary/waiting": [
+    "t1",
+    "t2",
+    "t3",
+    "t4",
+    "t5",
+    "t6",
+    "t7"
+  ],
+  "terminal": false
+}
+```
+
+## wide fan-in respects concurrency
+
+Producers fill the wave up to the bound; the consumer waits for every producer and names them.
+
+```json
+{
+  "tasks": [
+    {
+      "id": "p0",
+      "command": [
+        "make",
+        "0"
+      ],
+      "outputs": [
+        "p0.out"
+      ]
+    },
+    {
+      "id": "p1",
+      "command": [
+        "make",
+        "1"
+      ],
+      "outputs": [
+        "p1.out"
+      ]
+    },
+    {
+      "id": "p2",
+      "command": [
+        "make",
+        "2"
+      ],
+      "outputs": [
+        "p2.out"
+      ]
+    },
+    {
+      "id": "p3",
+      "command": [
+        "make",
+        "3"
+      ],
+      "outputs": [
+        "p3.out"
+      ]
+    },
+    {
+      "id": "p4",
+      "command": [
+        "make",
+        "4"
+      ],
+      "outputs": [
+        "p4.out"
+      ]
+    },
+    {
+      "id": "p5",
+      "command": [
+        "make",
+        "5"
+      ],
+      "outputs": [
+        "p5.out"
+      ]
+    },
+    {
+      "id": "join",
+      "command": [
+        "join"
+      ],
+      "deps": [
+        "p0",
+        "p1",
+        "p2",
+        "p3",
+        "p4",
+        "p5"
+      ],
+      "inputs": [
+        "p0.out",
+        "p1.out",
+        "p2.out",
+        "p3.out",
+        "p4.out",
+        "p5.out"
+      ],
+      "outputs": [
+        "joined"
+      ]
+    }
+  ],
+  "concurrency": 4
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "summary/ready": [
+    "p0",
+    "p1",
+    "p2",
+    "p3"
+  ],
+  "tasks/4/reason": "concurrency limit reached",
+  "tasks/6/id": "join",
+  "tasks/6/reason": "waiting for: p0, p1, p2, p3, p4, p5"
+}
+```
+
+## timeout upper bound accepted
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "x"
+      ],
+      "timeout_ms": 86400000,
+      "retries": 10
+    }
+  ],
+  "concurrency": 256
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "tasks/0/status": "ready",
+  "ready/0/timeout_ms": 86400000,
+  "ready/0/retries": 10
+}
+```
+
+## timeout above one day rejected
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "x"
+      ],
+      "timeout_ms": 86400001
+    }
+  ]
+}
+```
+
+Expected: nonzero exit with an input error.
+
+## fractional timeout rejected
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "x"
+      ],
+      "timeout_ms": 1.5
+    }
+  ]
+}
+```
+
+Expected: nonzero exit with an input error.
+
+## concurrency above limit rejected
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "x"
+      ]
+    }
+  ],
+  "concurrency": 257
+}
+```
+
+Expected: nonzero exit with an input error.
+
+## unicode ids order by code unit
+
+Identifiers may be any non-empty string; independent tasks are ordered by UTF-16 code units, so ASCII sorts before accented Latin before CJK.
+
+```json
+{
+  "tasks": [
+    {
+      "id": "b",
+      "command": [
+        "x"
+      ]
+    },
+    {
+      "id": "构建",
+      "command": [
+        "x"
+      ]
+    },
+    {
+      "id": "a",
+      "command": [
+        "x"
+      ]
+    },
+    {
+      "id": "Ärger",
+      "command": [
+        "x"
+      ]
+    }
+  ]
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "tasks/0/id": "a",
+  "tasks/1/id": "b",
+  "tasks/2/id": "Ärger",
+  "tasks/3/id": "构建"
+}
+```
+
+## nested output directories
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "x"
+      ],
+      "outputs": [
+        "dist/a/b.txt",
+        "dist/a/c.txt"
+      ]
+    }
+  ]
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "tasks/0/status": "ready",
+  "ready/0/outputs": [
+    "dist/a/b.txt",
+    "dist/a/c.txt"
+  ]
+}
+```
+
+## self dependency rejected
+
+```json
+{
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "x"
+      ],
+      "deps": [
+        "a"
+      ]
+    }
+  ]
+}
+```
+
+Expected: nonzero exit with an input error.
 
 ## environment values must be strings
 

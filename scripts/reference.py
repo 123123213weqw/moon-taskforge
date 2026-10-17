@@ -10,9 +10,12 @@ computed dependent closure. Failure blocking is checked the same way.
 import json
 import random
 import subprocess
+import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(root / 'scripts'))
+from merkle import node   # independent Merkle fingerprint computation (hashlib)
 random.seed(20261016)
 CLI = str(root / '_build/js/debug/build/cmd/main/main.js')
 
@@ -39,7 +42,7 @@ def build_graph(case):
     for i in range(count):
         name = ('step %d' if random.random() < 0.2 else 'step-%d') % i   # some names carry spaces
         deps = sorted(random.sample(range(i), min(i, random.choice([0, 1, 1, 2, 3]))))
-        task = {'id': 't%d' % i, 'command': ['build', name],
+        task = {'id': 't%d' % i, 'command': ['tool-%d' % i, name],      # one program per task so a tool digest targets one task
                 'inputs': ['src/%s.txt' % name] + ['out/t%d.bin' % d for d in deps if tasks[d].get('outputs')],
                 'deps': ['t%d' % d for d in deps]}
         if random.random() < 0.9:
@@ -90,7 +93,7 @@ def drive(tasks, concurrency):
         assert waves <= len(tasks)
 
 
-stats = {'tasks': 0, 'waves': 0, 'spaces': 0}
+stats = {'tasks': 0, 'waves': 0, 'spaces': 0, 'executables': 0}
 for case in range(100):
     tasks = build_graph(case)
     deps = {task['id']: task['deps'] for task in tasks}
@@ -118,6 +121,13 @@ for case in range(100):
             hashes[output] = 'o' + task['id']
     done = run({'tasks': tasks, 'hashes': hashes, 'completed': {t['id']: 'success' for t in tasks}})
     cache = done['cache']
+    # Every fingerprint node must equal the independent Merkle computation (SHA-256 over canonical JSON).
+    by_id = {t['id']: t for t in tasks}
+    nodes = {}
+    for report in done['tasks']:
+        nodes[report['id']] = node(by_id[report['id']], hashes, {}, {}, nodes)
+        assert report['fingerprint'] == nodes[report['id']], (case, report['id'])
+        assert len(json.dumps(report['fingerprint'])) < 2000, case     # constant size regardless of depth
     cached_ids = [t['id'] for t in tasks if t.get('outputs')]
     replay = run({'tasks': tasks, 'hashes': hashes, 'cache': cache})
     stale = sorted(t['id'] for t in replay['tasks'] if t['status'] != 'cached')
@@ -152,6 +162,10 @@ for case in range(100):
         forged = json.loads(json.dumps(cache))
         forged[victim]['outputs'][task['outputs'][0]] = 'forged'
         check(*stale_after({'tasks': tasks, 'hashes': hashes, 'cache': forged}), 'outputs changed')
+
+        tooling = {'tasks': tasks, 'hashes': hashes, 'cache': cache, 'executables': {task['command'][0]: 'tool-digest'}}
+        check(*stale_after(tooling), 'fingerprint changed: executable')
+        stats['executables'] += 1
         # Re-executing the distrusted task with identical output restores the cache for everything
         # except tasks that depend on output-less tasks, which always wait for them.
         if victim not in always:
@@ -168,8 +182,20 @@ for case in range(100):
         assert failed['terminal'] == set(always).issubset(blocked), case     # output-less tasks outside the failure still run
         assert failed['summary']['rerun'] == [t['id'] for t in failed['tasks'] if t['status'] in ('failed', 'blocked')], case
 
-print('Independent task oracle: 100 graphs (%d tasks, %d waves, %d paths with spaces) agree on dependency order, bounded waves, reproducibility, invalidation closures, forged cache distrust and failure blocking'
-      % (stats['tasks'], stats['waves'], stats['spaces']))
+print('Independent task oracle: 100 graphs (%d tasks, %d waves, %d paths with spaces, %d tool-digest checks) agree on dependency order, bounded waves, reproducibility, invalidation closures, forged cache distrust, executable digests and failure blocking'
+      % (stats['tasks'], stats['waves'], stats['spaces'], stats['executables']))
+
+# --- structured large graphs -------------------------------------------------
+
+chain = [{'id': 'c%03d' % i, 'command': ['step', str(i)], 'deps': ['c%03d' % (i - 1)] if i else [],
+          'inputs': ['src/c%03d.txt' % i] + (['out/c%03d.bin' % (i - 1)] if i else []), 'outputs': ['out/c%03d.bin' % i]} for i in range(200)]
+order, waves, final = drive(chain, 8)
+assert order == ['c%03d' % i for i in range(200)] and waves == 200          # a chain serializes regardless of concurrency
+fan = [{'id': 'leaf%03d' % i, 'command': ['make', str(i)], 'deps': [], 'inputs': ['src/leaf%03d.txt' % i], 'outputs': ['out/leaf%03d.bin' % i]} for i in range(150)]
+fan.append({'id': 'root', 'command': ['join'], 'deps': [t['id'] for t in fan], 'inputs': ['src/root.txt'] + [t['outputs'][0] for t in fan], 'outputs': ['out/root.bin']})
+order, waves, final = drive(fan, 8)
+assert order[-1] == 'root' and waves == 20 and len(order) == 151            # 150 leaves in 19 waves of 8, then the root
+print('Structured graphs: a 200-task chain and a 150-way fan-in schedule as expected; fingerprints stay constant-size')
 
 # --- failure validation -----------------------------------------------------
 

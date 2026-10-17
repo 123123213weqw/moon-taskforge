@@ -10,7 +10,7 @@ pub(all) struct Task {
 } derive(Eq)
 
 ///|
-let fingerprint_version : Double = 1.0
+let fingerprint_version : Double = 2.0
 
 ///|
 let fingerprint_fields : Array[String] = [
@@ -146,9 +146,11 @@ pub fn load_tasks(value : Value) -> Array[Task] raise {
 }
 
 ///|
+/// A fingerprint is a Merkle node: every field is the digest of its
+/// canonical JSON, dependencies contribute only their digests, and the node
+/// carries its own digest, so size stays constant however deep the graph.
 /// The executable digest is included only when the host supplied one for
-/// the task's program, so fingerprints of hosts that do not hash
-/// executables are unchanged.
+/// the task's program.
 fn fingerprint(
   task : Task,
   hashes : Value,
@@ -156,20 +158,31 @@ fn fingerprint(
   env : Value,
   dependencies : Map[String, Value],
 ) -> Value {
-  let inputs = record(task.inputs.map(path => (path, get(hashes, path))))
-  let deps = record(task.dependencies.map(id => (id, dependencies[id])))
   let fields = [
     ("version", Number(fingerprint_version)),
-    ("command", strings(task.command)),
-    ("inputs", inputs),
+    ("command", String(digest(canonical(strings(task.command))))),
+    (
+      "inputs",
+      String(
+        digest(
+          canonical(record(task.inputs.map(path => (path, get(hashes, path))))),
+        ),
+      ),
+    ),
   ]
   match get(executables, task.command[0]) {
     Null => ()
-    digest => fields.push(("executable", digest))
+    program => fields.push(("executable", program))
   }
-  fields.push(("outputs", strings(task.outputs)))
-  fields.push(("environment", env))
-  fields.push(("dependencies", deps))
+  fields.push(("outputs", String(digest(canonical(strings(task.outputs))))))
+  fields.push(("environment", String(digest(canonical(env)))))
+  fields.push(
+    (
+      "dependencies",
+      record(task.dependencies.map(id => (id, get(dependencies[id], "digest")))),
+    ),
+  )
+  fields.push(("digest", String(digest(canonical(record(fields))))))
   record(fields)
 }
 

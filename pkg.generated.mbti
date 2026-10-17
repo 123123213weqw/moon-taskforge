@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn digest(String) -> String
+
 pub fn execute(Json) -> Json raise
 
 pub fn from_json(Json) -> Value
