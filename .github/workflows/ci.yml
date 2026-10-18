@@ -54,6 +54,7 @@ jobs:
       - uses: hustcer/setup-moonbit@1522f9aef02a8ca0187dfc00a41f5dd6b16750f7
       - run: moon update
       - run: moon build --target js
+      - run: python -B scripts/followup_reference.py
       - run: node scripts/check.mjs
       - run: python -B scripts/reference.py
       - run: node scripts/integration.mjs

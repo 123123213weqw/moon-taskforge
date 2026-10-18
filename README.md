@@ -40,7 +40,7 @@ Pass `-` to read a UTF-8 JSON request from stdin. A single request must be at mo
 mooncakes.io currently accepts only zero-major versions (`moon publish` rejects anything else with "In this very early stage, the major version must be '0'"), so repository releases and registry versions are numbered separately. The registry version corresponding to each repository release is recorded in [CHANGELOG.md](CHANGELOG.md); `0.1.0` is the initial implementation.
 
 ```sh
-moon add 123123213weqw/moon_taskforge@REGISTRY_VERSION
+moon add 123123213weqw/moon_taskforge@0.10.0
 ```
 
 In the consumer's `moon.pkg`:
@@ -102,3 +102,14 @@ sh scripts/consume.sh REGISTRY_VERSION  # fresh module consumes the published pa
 Commands are argv arrays with `shell=false`. This is a local executor, not a security sandbox: supplied commands have the current user's rights. Cache identity includes declared inputs, the explicit environment and, with `hash_executables`, each task's program; undeclared files, libraries loaded by programs and the inherited environment are not hermetic. Tasks without outputs always execute, and so does anything that depends on them. By default a dependent reruns when its producer's fingerprint changed even if the produced bytes did not; `propagate: "content"` switches to early cutoff, where only declared file contents invalidate. Journals record results and the cache is persisted per wave; an interrupted task itself is re-executed, so side effects should be idempotent. Killing a task targets its direct child process, not every grandchild. The journal keeps a 64 KiB tail of each attempt's output and the complete output goes to `.taskforge/logs/`; both contain whatever commands print, while environment values appear only as digests. Concurrent hostile workspace mutation is not isolated. See [docs/boundaries.md](docs/boundaries.md).
 
 See [source and dependency attribution](THIRD_PARTY.md). This release does not establish competition eligibility or organizer acceptance.
+
+
+## 2026-10-18 follow-up
+
+同步保留公开版已有的 Merkle 指纹、目标闭包、提前截断、日志、取消和执行证据，新增 impact：对 changed_inputs 计算直接输入消费者及依赖传播闭包，逐项说明触发文件和受影响依赖，保留未影响任务列表。此操作不执行命令，拒绝不安全路径；同时拒绝重复或大小写冲突的输入声明。
+
+impact 报告潜在依赖闭包，不承诺实际重执行数量；缓存命中与内容传播提前截断可以减少实际工作。命令执行仍非安全沙箱，工作区和声明依赖必须可信。
+
+Repository release: 1.1.0; installable MoonCakes module: `123123213weqw/moon_taskforge@0.10.0`. Earlier repository 1.0.0 labels are retained as history; the module uses the registry-compatible zero-major sequence.
+
+Current source contains 59 MoonBit test declarations and 54 CLI fixtures (generated fixture tests are included in the declaration count). Run `python -B scripts/followup_reference.py` for independent follow-up oracles and `examples/followup-20261018.json` for the new scenario.

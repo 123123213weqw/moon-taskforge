@@ -1,52 +1,125 @@
-# Moon TaskForge 项目申报书
+# Moon TaskForge 项目申报参考书
 
-项目负责人账号：123123213weqw。项目方向：开发者工具与构建基础设施。
-GitHub：https://github.com/123123213weqw/moon-taskforge公开仓库，拟用 `123123213weqw/moon-taskforge`。
-当前阶段：选题与架构规划；本文按立项阶段表述功能、交付和验收目标。
+## 增量任务执行与变更影响分析
 
-## 项目简介与通用价值
+账号：123123213weqw；主要语言：MoonBit；许可：Apache-2.0；更新日期：2026-10-18。  
+GitHub：[https://github.com/123123213weqw/moon-taskforge](https://github.com/123123213weqw/moon-taskforge)  
+仓库发行：1.1.0；公共模块：[123123213weqw/moon_taskforge@0.10.0](https://mooncakes.io/docs/123123213weqw/moon_taskforge@0.10.0)
 
-形成本地任务图从输入变化、选择任务、执行到增量缓存与失败报告的完整构建流程。项目采用 MoonBit 实现核心处理能力，提供可复用库接口与命令行入口，使使用者能够把同一能力嵌入应用、离线处理或 CI 流程。适用范围通过不同用途的完整示例说明，并以输入、判断过程和可核验输出体现实际价值。
+本文供个人参考，按本次实际代码及边界编写。公开提交、CI、发布和独立安装结果另附交付核对表，不以材料修订代替主办方重新审核。
 
-## 核心功能
+## 一、项目职责与本次改进
 
-任务图与校验；规划及拓扑调度；本地进程适配；有界并发；输入输出指纹；缓存与失效传播；超时/取消/重试；恢复记录和 CLI。处理进程退出与输出文件的真实结果，计划器本身可跨后端测试。
+同步保留公开版已有的 Merkle 指纹、目标闭包、提前截断、日志、取消和执行证据，新增 impact：对 changed_inputs 计算直接输入消费者及依赖传播闭包，逐项说明触发文件和受影响依赖，保留未影响任务列表。此操作不执行命令，拒绝不安全路径；同时拒绝重复或大小写冲突的输入声明。
 
-## 三个完整使用场景
+已有核心能力继续保留，具体入口及完整使用方式见仓库 README 与 API 清单。本次对旧仓库先做版本同步，保留公开历史，不将此前已完成的功能重写为本轮新成果。
 
-1. 代码生成构建：输入生成器、编译与测试任务图，实际执行命令并记录输出；首次运行完成全流程，再修改单个输入验证失效传播，输出需要重建的任务及缓存命中原因。
+## 二、可复现输入及预期结果
 
-2. 文档发布准备：输入文档渲染、索引与链接检查任务，按依赖执行；在链接检查失败时阻断后续发布准备任务，输出错误、日志和可重跑范围，避免失败产物进入下一阶段。
+以下为新增固定夹具之一，输入与字段断言同时纳入测试。更多场景见 tests/cases.json 和 examples/；所有样本均为合成数据，不作为真实用户证据。
 
-3. 离线资产处理：输入多份资产及处理任务，以有界并发执行固定命令；模拟超时、产物丢失和坏缓存，输出任务状态与恢复记录，验证再次运行只重做需要的部分。
+```json
+{
+  "operation": "impact",
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "input"
+      ],
+      "outputs": [
+        "a"
+      ]
+    },
+    {
+      "id": "b",
+      "command": [
+        "echo",
+        "b"
+      ],
+      "deps": [
+        "a"
+      ],
+      "inputs": [
+        "a"
+      ],
+      "outputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "c",
+      "command": [
+        "echo",
+        "c"
+      ],
+      "deps": [
+        "b"
+      ],
+      "inputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "d",
+      "command": [
+        "echo",
+        "d"
+      ]
+    }
+  ],
+  "changed_inputs": [
+    "input"
+  ]
+}
+```
 
-## 技术路线与工程实现
+预期结果字段：
 
-将任务描述解析为 DAG，先验证再计算执行计划；指纹缓存以输入、命令及相关配置为依据，调度器通过进程适配执行，失败和取消均写入事件记录。核心逻辑采用有类型的数据结构、明确错误结果和可测试执行步骤；文件、网络或进程适配与核心处理分层。实现过程中用小规模确定性输入建立正确性基准，再使用真实场景和规模数据检查可用性。对外暴露稳定接口，避免把演示脚本作为唯一使用方式。
+```json
+{
+  "affected/0/id": "a",
+  "affected/1/id": "b",
+  "affected/2/id": "c",
+  "unaffected": [
+    "d"
+  ],
+  "plan_only": true
+}
+```
 
-## 预计交付与验收方式
+## 三、实现和验证结构
 
-交付目标包括公开 MoonBit 源码、库接口、CLI、三个完整场景及输入来源、单元与集成测试、适用目标的 CI、安装使用说明、设计与边界文档、源码统计及独立安装验证记录。有效生产 MoonBit 源码内部估算为 5,000–8,000 行，测试、示例、生成语料和辅助脚本分别统计，该估算不作为官方验收门槛。
+领域计算由 MoonBit 完成，宿主侧负责文件、HTTP、进程或独立参考算法。可复用接口保持 execute(Json)→Json 与语义值 run 入口；实际公开接口以 pkg.generated.mbti 为准。当前根目录包含 59 项 MoonBit 测试声明，CLI 固定夹具 54 组；其中自动生成的夹具测试按生成测试统计，不算额外生产实现。
 
-一百任务图的执行顺序遵守依赖；失效集合与独立参考一致；缓存命中时产物摘要仍核验。失败验证覆盖环、任务失败、进程超时、伪造缓存、产物丢失和路径包含空格。只在专用测试目录执行预设命令。十月不做分布式调度、容器集群或 AI 多代理工作流。
+复核路径为四后端核心测试、真实 CLI 夹具、独立参考检查、宿主场景（适用时）、公开 CI 和公共包独立安装。新增检查运行：
 
-## 原创性、来源与开源计划
+```sh
+moon update
+moon test --target js
+moon test --target wasm
+moon test --target wasm-gc
+moon test --target native
+moon build --target js
+node scripts/check.mjs
+python -B scripts/followup_reference.py
+moon run cmd/main --target js -- examples/followup-20261018.json
+```
 
-拟原创实现本项目的数据模型、处理流程和业务判断，不把九月项目旧代码或简单拆分计入此次新成果。[Ninja 构建模型参考](https://ninja-build.org/manual.html)作为设计或标准参考，当前没有声明已复制该项目代码。计划采用 Apache-2.0；实际采用的依赖、参考实现和数据集逐项记录版本、链接、许可证与使用范围。生态查重仍须补齐同类项目的接口、能力和差异证据，不能声称已证明唯一性。
+native 需要 C 编译器；标为带变化/问题的有效报告可能使用退出码 2。实际通过记录和对应源码版本见交付核对表，命令列表本身不作为通过证明。
 
-## 制作安排与技术取舍
+## 四、开发记录与来源
 
-本项目属于第 3 轮：先完成模型与接口，再交付可运行的核心链路和三个场景，随后完成规模验证、失败路径、当前提交的 CI 与公开包独立消费验证。主要取舍是让统一核心能力服务多个场景，同时将运行环境和暂不支持的语义写清；完成状态以实际源码和验证记录更新。目标截止日期为 2026-10-31，进度以实际里程碑为准。
+本次提交按错误修正、针对性测试、领域实现、独立参考和版本文档记录，均使用真实日期并保留原有历史。2026-09-01 后的数量与哈希由 GitHub API 核查；达到数量条件不意味着所有提交已获主办方认定。
 
+共同 JSON/CLI 脚手架按基础设施说明，不当作各项目独有创新。实际依赖、参考与许可见 THIRD_PARTY.md；第三方代码、生成夹具和文档不计为独立生产实现。功能有重叠时，不以“纯 MoonBit”“带测试”或“无 I/O”主张唯一性，项目差异应落到可执行机制与案例。
 
-## 已完成版本与原方案的区别 (completed version versus the plan)
+## 五、当前边界
 
-Public repository: https://github.com/123123213weqw/moon-taskforge
+impact 报告潜在依赖闭包，不承诺实际重执行数量；缓存命中与内容传播提前截断可以减少实际工作。命令执行仍非安全沙箱，工作区和声明依赖必须可信。
 
-**Current release: 1.0.0 (2026-10-16), the complete implementation of the proposed scope.** The sections above are the original proposal text from the planning stage and are kept unchanged for reference; the facts below describe what is actually delivered.
-
-- The three usage scenarios (code generation build, documentation publishing preparation, offline asset processing) exist as real workflows with tool scripts and inputs under `examples/` and are executed end to end through the real executor by `scripts/scenarios.mjs`, including invalidation propagation, failure blocking with re-run scope, timeouts, lost artifacts and forged cache entries.
-- The acceptance checks are executable: `scripts/reference.py` drives 100 task graphs through the planner with an independent Python harness and confirms that execution order respects dependencies, that invalidation sets equal the independently computed closure, and that cached outputs are digest-verified; the failure checks cover cycles, task failures, process timeouts (executor level), forged caches, lost artifacts and paths containing spaces. Preset commands run only in dedicated temporary directories.
-- Deliverables are in the repository: public MoonBit source, library interface, CLI, scenarios with their input sources, unit/integration/scenario tests, CI for the applicable targets, installation and usage documentation, design and boundary documents, source statistics (`scripts/stats.py`) and independent consumption verification of the published package (`scripts/consume.sh`).
-- The source line-count range in the proposal was an internal planning estimate; it is not an acceptance threshold and is not reported as a result. `scripts/stats.py` reports the actual numbers.
-- Not done and not claimed: distributed scheduling, container or cluster backends, AI multi-agent workflows, remote caches, sandboxing, and the other limits listed in `docs/boundaries.md`.
+完整原方案的代码量、性能目标与用户效果不自动沿用为当前成果；统计以源码实际值及本机/CI 的测量记录为准。比赛准入、团队/项目数解释和最终审核仍由主办方决定，本轮不代提交报名。

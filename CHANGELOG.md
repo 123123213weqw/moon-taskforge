@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0 — 2026-10-18
+
+Registry version: 0.10.0.
+
+同步保留公开版已有的 Merkle 指纹、目标闭包、提前截断、日志、取消和执行证据，新增 impact：对 changed_inputs 计算直接输入消费者及依赖传播闭包，逐项说明触发文件和受影响依赖，保留未影响任务列表。此操作不执行命令，拒绝不安全路径；同时拒绝重复或大小写冲突的输入声明。
+
 ## Unreleased
 
 - `scripts/bench.py` validates scale against independent closures (1000-task chain and fan-in plans, closure-exact invalidation after one input change, a 120-command executor run) and records timings in docs/benchmarks.md; the scale check runs in CI. reference.py gained a main guard so its helpers can be imported.

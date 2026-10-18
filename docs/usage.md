@@ -2174,6 +2174,291 @@ An executor may only report success after the declared outputs exist; the planne
 
 Expected: nonzero exit with an input error.
 
+## followup input impact closure
+
+```json
+{
+  "operation": "impact",
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "input"
+      ],
+      "outputs": [
+        "a"
+      ]
+    },
+    {
+      "id": "b",
+      "command": [
+        "echo",
+        "b"
+      ],
+      "deps": [
+        "a"
+      ],
+      "inputs": [
+        "a"
+      ],
+      "outputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "c",
+      "command": [
+        "echo",
+        "c"
+      ],
+      "deps": [
+        "b"
+      ],
+      "inputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "d",
+      "command": [
+        "echo",
+        "d"
+      ]
+    }
+  ],
+  "changed_inputs": [
+    "input"
+  ]
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "affected/0/id": "a",
+  "affected/1/id": "b",
+  "affected/2/id": "c",
+  "unaffected": [
+    "d"
+  ],
+  "plan_only": true
+}
+```
+
+## followup intermediate impact closure
+
+```json
+{
+  "operation": "impact",
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "input"
+      ],
+      "outputs": [
+        "a"
+      ]
+    },
+    {
+      "id": "b",
+      "command": [
+        "echo",
+        "b"
+      ],
+      "deps": [
+        "a"
+      ],
+      "inputs": [
+        "a"
+      ],
+      "outputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "c",
+      "command": [
+        "echo",
+        "c"
+      ],
+      "deps": [
+        "b"
+      ],
+      "inputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "d",
+      "command": [
+        "echo",
+        "d"
+      ]
+    }
+  ],
+  "changed_inputs": [
+    "a"
+  ]
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "affected/0/id": "b",
+  "affected/1/id": "c",
+  "unaffected": [
+    "a",
+    "d"
+  ]
+}
+```
+
+## followup irrelevant change
+
+```json
+{
+  "operation": "impact",
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "input"
+      ],
+      "outputs": [
+        "a"
+      ]
+    },
+    {
+      "id": "b",
+      "command": [
+        "echo",
+        "b"
+      ],
+      "deps": [
+        "a"
+      ],
+      "inputs": [
+        "a"
+      ],
+      "outputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "c",
+      "command": [
+        "echo",
+        "c"
+      ],
+      "deps": [
+        "b"
+      ],
+      "inputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "d",
+      "command": [
+        "echo",
+        "d"
+      ]
+    }
+  ],
+  "changed_inputs": [
+    "other"
+  ]
+}
+```
+
+Expected result fields:
+
+```json
+{
+  "affected": []
+}
+```
+
+## followup unsafe changed path
+
+```json
+{
+  "operation": "impact",
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "input"
+      ],
+      "outputs": [
+        "a"
+      ]
+    },
+    {
+      "id": "b",
+      "command": [
+        "echo",
+        "b"
+      ],
+      "deps": [
+        "a"
+      ],
+      "inputs": [
+        "a"
+      ],
+      "outputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "c",
+      "command": [
+        "echo",
+        "c"
+      ],
+      "deps": [
+        "b"
+      ],
+      "inputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "d",
+      "command": [
+        "echo",
+        "d"
+      ]
+    }
+  ],
+  "changed_inputs": [
+    "../bad"
+  ]
+}
+```
+
+Expected: nonzero exit with an input error.
+
 ## Host adapter
 
 ```sh
