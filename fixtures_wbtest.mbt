@@ -643,3 +643,48 @@ test "success requires verified outputs" {
     ),
   )
 }
+
+///|
+test "followup input impact closure" {
+  let result = run(
+    parse(
+      "{\"operation\":\"impact\",\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"input\"],\"outputs\":[\"a\"]},{\"id\":\"b\",\"command\":[\"echo\",\"b\"],\"deps\":[\"a\"],\"inputs\":[\"a\"],\"outputs\":[\"b\"]},{\"id\":\"c\",\"command\":[\"echo\",\"c\"],\"deps\":[\"b\"],\"inputs\":[\"b\"]},{\"id\":\"d\",\"command\":[\"echo\",\"d\"]}],\"changed_inputs\":[\"input\"]}",
+    ),
+  )
+  assert_eq(test_at(result, ["affected", "0", "id"]), parse("\"a\""))
+  assert_eq(test_at(result, ["affected", "1", "id"]), parse("\"b\""))
+  assert_eq(test_at(result, ["affected", "2", "id"]), parse("\"c\""))
+  assert_eq(test_at(result, ["unaffected"]), parse("[\"d\"]"))
+  assert_eq(test_at(result, ["plan_only"]), parse("true"))
+}
+
+///|
+test "followup intermediate impact closure" {
+  let result = run(
+    parse(
+      "{\"operation\":\"impact\",\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"input\"],\"outputs\":[\"a\"]},{\"id\":\"b\",\"command\":[\"echo\",\"b\"],\"deps\":[\"a\"],\"inputs\":[\"a\"],\"outputs\":[\"b\"]},{\"id\":\"c\",\"command\":[\"echo\",\"c\"],\"deps\":[\"b\"],\"inputs\":[\"b\"]},{\"id\":\"d\",\"command\":[\"echo\",\"d\"]}],\"changed_inputs\":[\"a\"]}",
+    ),
+  )
+  assert_eq(test_at(result, ["affected", "0", "id"]), parse("\"b\""))
+  assert_eq(test_at(result, ["affected", "1", "id"]), parse("\"c\""))
+  assert_eq(test_at(result, ["unaffected"]), parse("[\"a\",\"d\"]"))
+}
+
+///|
+test "followup irrelevant change" {
+  let result = run(
+    parse(
+      "{\"operation\":\"impact\",\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"input\"],\"outputs\":[\"a\"]},{\"id\":\"b\",\"command\":[\"echo\",\"b\"],\"deps\":[\"a\"],\"inputs\":[\"a\"],\"outputs\":[\"b\"]},{\"id\":\"c\",\"command\":[\"echo\",\"c\"],\"deps\":[\"b\"],\"inputs\":[\"b\"]},{\"id\":\"d\",\"command\":[\"echo\",\"d\"]}],\"changed_inputs\":[\"other\"]}",
+    ),
+  )
+  assert_eq(test_at(result, ["affected"]), parse("[]"))
+}
+
+///|
+test "followup unsafe changed path" {
+  assert_true(
+    fails(
+      "{\"operation\":\"impact\",\"tasks\":[{\"id\":\"a\",\"command\":[\"echo\",\"a\"],\"inputs\":[\"input\"],\"outputs\":[\"a\"]},{\"id\":\"b\",\"command\":[\"echo\",\"b\"],\"deps\":[\"a\"],\"inputs\":[\"a\"],\"outputs\":[\"b\"]},{\"id\":\"c\",\"command\":[\"echo\",\"c\"],\"deps\":[\"b\"],\"inputs\":[\"b\"]},{\"id\":\"d\",\"command\":[\"echo\",\"d\"]}],\"changed_inputs\":[\"../bad\"]}",
+    ),
+  )
+}

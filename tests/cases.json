@@ -1946,5 +1946,270 @@
     "expected": {},
     "error": true,
     "note": "An executor may only report success after the declared outputs exist; the planner refuses inconsistent reports."
+  },
+  {
+    "name": "followup input impact closure",
+    "request": {
+      "operation": "impact",
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "input"
+          ],
+          "outputs": [
+            "a"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "echo",
+            "b"
+          ],
+          "deps": [
+            "a"
+          ],
+          "inputs": [
+            "a"
+          ],
+          "outputs": [
+            "b"
+          ]
+        },
+        {
+          "id": "c",
+          "command": [
+            "echo",
+            "c"
+          ],
+          "deps": [
+            "b"
+          ],
+          "inputs": [
+            "b"
+          ]
+        },
+        {
+          "id": "d",
+          "command": [
+            "echo",
+            "d"
+          ]
+        }
+      ],
+      "changed_inputs": [
+        "input"
+      ]
+    },
+    "expected": {
+      "affected/0/id": "a",
+      "affected/1/id": "b",
+      "affected/2/id": "c",
+      "unaffected": [
+        "d"
+      ],
+      "plan_only": true
+    },
+    "error": false
+  },
+  {
+    "name": "followup intermediate impact closure",
+    "request": {
+      "operation": "impact",
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "input"
+          ],
+          "outputs": [
+            "a"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "echo",
+            "b"
+          ],
+          "deps": [
+            "a"
+          ],
+          "inputs": [
+            "a"
+          ],
+          "outputs": [
+            "b"
+          ]
+        },
+        {
+          "id": "c",
+          "command": [
+            "echo",
+            "c"
+          ],
+          "deps": [
+            "b"
+          ],
+          "inputs": [
+            "b"
+          ]
+        },
+        {
+          "id": "d",
+          "command": [
+            "echo",
+            "d"
+          ]
+        }
+      ],
+      "changed_inputs": [
+        "a"
+      ]
+    },
+    "expected": {
+      "affected/0/id": "b",
+      "affected/1/id": "c",
+      "unaffected": [
+        "a",
+        "d"
+      ]
+    },
+    "error": false
+  },
+  {
+    "name": "followup irrelevant change",
+    "request": {
+      "operation": "impact",
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "input"
+          ],
+          "outputs": [
+            "a"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "echo",
+            "b"
+          ],
+          "deps": [
+            "a"
+          ],
+          "inputs": [
+            "a"
+          ],
+          "outputs": [
+            "b"
+          ]
+        },
+        {
+          "id": "c",
+          "command": [
+            "echo",
+            "c"
+          ],
+          "deps": [
+            "b"
+          ],
+          "inputs": [
+            "b"
+          ]
+        },
+        {
+          "id": "d",
+          "command": [
+            "echo",
+            "d"
+          ]
+        }
+      ],
+      "changed_inputs": [
+        "other"
+      ]
+    },
+    "expected": {
+      "affected": []
+    },
+    "error": false
+  },
+  {
+    "name": "followup unsafe changed path",
+    "request": {
+      "operation": "impact",
+      "tasks": [
+        {
+          "id": "a",
+          "command": [
+            "echo",
+            "a"
+          ],
+          "inputs": [
+            "input"
+          ],
+          "outputs": [
+            "a"
+          ]
+        },
+        {
+          "id": "b",
+          "command": [
+            "echo",
+            "b"
+          ],
+          "deps": [
+            "a"
+          ],
+          "inputs": [
+            "a"
+          ],
+          "outputs": [
+            "b"
+          ]
+        },
+        {
+          "id": "c",
+          "command": [
+            "echo",
+            "c"
+          ],
+          "deps": [
+            "b"
+          ],
+          "inputs": [
+            "b"
+          ]
+        },
+        {
+          "id": "d",
+          "command": [
+            "echo",
+            "d"
+          ]
+        }
+      ],
+      "changed_inputs": [
+        "../bad"
+      ]
+    },
+    "expected": {},
+    "error": true
   }
 ]

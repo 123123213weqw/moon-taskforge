@@ -1,0 +1,57 @@
+{
+  "operation": "impact",
+  "tasks": [
+    {
+      "id": "a",
+      "command": [
+        "echo",
+        "a"
+      ],
+      "inputs": [
+        "input"
+      ],
+      "outputs": [
+        "a"
+      ]
+    },
+    {
+      "id": "b",
+      "command": [
+        "echo",
+        "b"
+      ],
+      "deps": [
+        "a"
+      ],
+      "inputs": [
+        "a"
+      ],
+      "outputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "c",
+      "command": [
+        "echo",
+        "c"
+      ],
+      "deps": [
+        "b"
+      ],
+      "inputs": [
+        "b"
+      ]
+    },
+    {
+      "id": "d",
+      "command": [
+        "echo",
+        "d"
+      ]
+    }
+  ],
+  "changed_inputs": [
+    "input"
+  ]
+}
