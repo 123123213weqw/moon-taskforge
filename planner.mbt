@@ -66,6 +66,13 @@ pub fn load_tasks(value : Value) -> Array[Task] raise {
         raise InputError("unsafe task path: " + path)
       }
     }
+    let input_names : Map[String, Bool] = Map([])
+    for path in inputs {
+      if input_names.contains(path.to_lower()) {
+        raise InputError("duplicate or case-colliding task input")
+      }
+      input_names[path.to_lower()] = true
+    }
     for path in outputs {
       let folded = path.to_lower()
       if output_owners
@@ -244,6 +251,9 @@ fn string_map(value : Value, what : String) -> Map[String, Value] raise {
 
 ///|
 pub fn run(request : Value) -> Value raise {
+  if get(request, "operation") == String("impact") {
+    return impact_request(request)
+  }
   let tasks = load_tasks(get(request, "tasks"))
   let hashes = Object(string_map(get(request, "hashes"), "hash"))
   let executables = Object(
