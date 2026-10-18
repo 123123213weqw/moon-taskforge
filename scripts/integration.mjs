@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import {execute, plan, why} from './execute.mjs';
+import {execute, plan, why, status} from './execute.mjs';
 const base = fs.mkdtempSync(path.join(os.tmpdir(), 'taskforge-integration-'));
 const cache = path.join(base, 'cache.json'), journal = path.join(base, 'journal.json');
 const workflow = {tasks: [
@@ -77,6 +77,28 @@ try {
   assert.equal(fs.readFileSync(path.join(base,'report.txt'),'utf8'),'second','skipped task did not run');
   assert.equal(targeted.plan.success,true);
 
+  // --status summarizes the last journal: failures, waves and interruption.
+  const failing = {tasks:[
+    {id:'broken',command:[process.execPath,'-e','process.exit(4)'],outputs:['broken.txt']},
+    {id:'after',deps:['broken'],command:[process.execPath,'-e','0']}]};
+  const failedRun = await execute(failing,base,cache,journal);
+  assert.equal(failedRun.plan.success,false);
+  const summary = status(base, journal);
+  assert.deepEqual(summary.failures.map(f => f.id + ':' + f.code),['broken:4']);
+  assert.equal(summary.interrupted,false);
+  assert.ok(summary.waves.length >= 1 && summary.needs_work.some(t => t.id === 'broken'));
+  const controller2 = new AbortController();
+  const slowBroken = {tasks:[
+    {id:'first',command:[process.execPath,'-e',"require('fs').writeFileSync('first.txt','x')"],outputs:['first.txt']},
+    {id:'slow2',deps:['first'],command:[process.execPath,'-e','setTimeout(()=>{},5000)']}]};
+  assert.equal((await execute(slowBroken,base,cache,journal)).plan.success,true,'first pass completes so first is cached');
+  const running2 = execute(slowBroken,base,cache,journal,{signal:controller2.signal});
+  await new Promise(r => setTimeout(r, 400));
+  controller2.abort();
+  await assert.rejects(running2,/Execution cancelled/);
+  const interrupted = status(base, journal);
+  assert.equal(interrupted.interrupted,true,'mid-run journal has no final plan');
+
   // Every attempt's complete output goes to a log file; the journal keeps a bounded tail.
   const chatty = await execute({tasks:[{id:'chat ty/1',command:[process.execPath,'-e',"process.stdout.write('x'.repeat(200000));process.stderr.write('END')"]}]},base,cache,journal);
   const [attempt] = chatty.results;
@@ -107,10 +129,10 @@ try {
   const trimmed = {tasks:[workflow.tasks[0]]};               // validate (and report.txt) is gone from the workflow
   fs.writeFileSync(path.join(base,'unrelated.txt'),'keep');
   const pruneRun = await execute(trimmed,base,cache,journal,{prune:true});
-  assert.deepEqual(pruneRun.pruned,['env.txt','fast.txt','report.txt','slow.txt','tool-out.txt'],'every cache-recorded output no current task declares');
+  assert.deepEqual(pruneRun.pruned,['env.txt','fast.txt','first.txt','report.txt','slow.txt','tool-out.txt'],'every cache-recorded output no current task declares');
   assert.ok(!fs.existsSync(path.join(base,'report.txt')) && fs.existsSync(path.join(base,'unrelated.txt')) && fs.existsSync(path.join(base,'generated.txt')));
   assert.ok(!('validate' in JSON.parse(fs.readFileSync(cache,'utf8'))),'cache entry of the removed task is dropped');
   assert.equal(pruneRun.results.length,0,'the remaining task stays cached');
   assert.ok(pruneRun.duration_ms>=0 && Array.isArray(pruneRun.waves));
-  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, graceful termination, retry, environment privacy, executable hashing, plan, why, log files, cancellation and prune passed');
+  console.log('Task integration: execution, cache hit, input/output invalidation, failure propagation, timeout, graceful termination, retry, environment privacy, executable hashing, plan, why, status, log files, cancellation and prune passed');
 } finally { fs.rmSync(base,{recursive:true,force:true}); }

@@ -110,6 +110,27 @@ function prepare(workflow, workspace, cacheFile, options = {}) {
       ...(targets && {targets}), ...(workflow.propagate && {propagate: workflow.propagate})}};
 }
 
+// Summarizes the journal of the last run in a workspace: what needed work
+// and why, the waves with durations, failures with their logs, and whether
+// the run was interrupted (no final plan recorded).
+export function status(workspace, journalFile = path.join(fs.realpathSync(workspace), '.taskforge-journal.json')) {
+  if (!fs.existsSync(journalFile)) throw new Error('No journal at ' + journalFile + '; run a workflow first');
+  const journal = JSON.parse(fs.readFileSync(journalFile, 'utf8'));
+  const failures = (journal.results ?? []).filter(r => r.timedOut || r.code !== 0)
+    .map(({id, attempt, code, signal, timedOut, duration_ms, log}) => ({id, attempt, code, signal, timedOut, duration_ms, ...(log && {log})}));
+  return {
+    journal: '.taskforge-journal.json',
+    interrupted: !('plan' in journal),
+    attempts: (journal.results ?? []).length,
+    failures,
+    needs_work: journal.initial ?? [],
+    waves: journal.waves ?? [],
+    duration_ms: journal.duration_ms ?? null,
+    pruned: journal.pruned ?? [],
+    completed: journal.completed ?? {},
+  };
+}
+
 // Plans without executing anything or writing any file.
 export function plan(workflow, workspace, cacheFile, options = {}) {
   const {base, cache, fingerprintInputs, executables} = prepare(workflow, workspace, cacheFile, options);
@@ -220,18 +241,24 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     while (args[0]?.startsWith('--')) {
       const flag = args.shift();
       if (flag === '--plan') mode = 'plan';
+      else if (flag === '--status') mode = 'status';
       else if (flag === '--why') { mode = 'why'; target = args.shift(); }
       else if (flag === '--prune') prune = true;
       else if (flag === '--target') (targets ??= []).push(args.shift());
       else throw new Error('Unknown option ' + flag);
     }
     const [file, workspace = process.cwd()] = args;
-    if (!file || (mode === 'why' && !target) || targets?.includes(undefined)) throw new Error('Usage: node scripts/execute.mjs [--plan | --why TASK] [--prune] [--target TASK]... workflow.json [workspace]');
+    if (mode === 'status') {
+      console.log(JSON.stringify(status(file ?? process.cwd()), null, 2));
+    }
+    if (mode !== 'status' && (!file || (mode === 'why' && !target) || targets?.includes(undefined))) throw new Error('Usage: node scripts/execute.mjs [--plan | --why TASK] [--prune] [--target TASK]... workflow.json [workspace] | --status [workspace]');
     const base = fs.realpathSync(workspace);
     const workflow = JSON.parse(fs.readFileSync(file, 'utf8'));
     const cacheFile = path.join(base, '.taskforge-cache.json');
     const options = {prune, ...(targets && {targets})};
-    if (mode === 'plan') {
+    if (mode === 'status') {
+      // handled above; keep the flow explicit
+    } else if (mode === 'plan') {
       console.log(JSON.stringify(plan(workflow, base, cacheFile, options).plan, null, 2));
     } else if (mode === 'why') {
       console.log(JSON.stringify(why(workflow, base, cacheFile, target, options), null, 2));
