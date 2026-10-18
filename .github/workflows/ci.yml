@@ -58,6 +58,7 @@ jobs:
       - run: python -B scripts/reference.py
       - run: node scripts/integration.mjs
       - run: node scripts/scenarios.mjs
+      - run: python -B scripts/bench.py --check
   package:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest

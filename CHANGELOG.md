@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `scripts/bench.py` validates scale against independent closures (1000-task chain and fan-in plans, closure-exact invalidation after one input change, a 120-command executor run) and records timings in docs/benchmarks.md; the scale check runs in CI. reference.py gained a main guard so its helpers can be imported.
 - `--status [WORKSPACE]` (and `status` from the module) summarizes the journal of the last run: what needed work and why, waves with durations, failures with log paths, pruned files and whether the run was interrupted.
 - Every attempt's complete output is written to `.taskforge/logs/<id>-<digest>.<attempt>.log` (disable with `options.logs: false`); the journal keeps its bounded 64 KiB tail and records the log path.
 - Tasks accept `grace_ms` (0-60000): on timeout the executor sends SIGTERM and escalates to SIGKILL after the grace period, so processes can clean up; a timed-out task still fails.

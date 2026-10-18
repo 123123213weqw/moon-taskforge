@@ -88,13 +88,14 @@ moon build --target js
 node scripts/check.mjs                  # the 30 fixtures through the real CLI
 python -B scripts/reference.py          # 100 task graphs vs an independent Python oracle
 node scripts/integration.mjs            # real subprocesses: cache, invalidation, failure, timeout, retry, env privacy, tool hashing
-node scripts/scenarios.mjs              # the three scenarios, 33 checks
+node scripts/scenarios.mjs              # the three scenarios, 36 checks
+python -B scripts/bench.py --check       # scale: 1000-task plans, closure-exact invalidation
 python -B scripts/fixtures.py --check   # generated tests and usage guide match tests/cases.json
 python -B scripts/stats.py              # source statistics by category
 sh scripts/consume.sh REGISTRY_VERSION  # fresh module consumes the published package
 ```
 
-`tests/cases.json` is the single source of the 30 fixture cases; `scripts/fixtures.py` generates `fixtures_wbtest.mbt` and `docs/usage.md` from it. The property tests drive generated 60-task graphs to completion and compare invalidation sets with an independently computed dependent closure. The oracle in `scripts/reference.py` drives 100 random graphs through the planner and checks that execution order respects every dependency, that waves respect the concurrency bound, that plans are reproducible, and that the invalidation set after an input change, a command change, a lost artifact or a forged cache entry equals the independently computed closure; it also checks failure blocking and that re-executing a distrusted task with identical output restores the cache for everything else. Fixtures and scenario data are synthetic and are not presented as production adoption evidence. CI runs all of the above on every push; the consumption check runs on demand against a registry version.
+`tests/cases.json` is the single source of the 30 fixture cases; `scripts/fixtures.py` generates `fixtures_wbtest.mbt` and `docs/usage.md` from it. The property tests drive generated 60-task graphs to completion and compare invalidation sets with an independently computed dependent closure. The oracle in `scripts/reference.py` drives 100 random graphs through the planner and checks that execution order respects every dependency, that waves respect the concurrency bound, that plans are reproducible, and that the invalidation set after an input change, a command change, a lost artifact or a forged cache entry equals the independently computed closure; it also checks failure blocking and that re-executing a distrusted task with identical output restores the cache for everything else. Fixtures and scenario data are synthetic and are not presented as production adoption evidence. CI runs all of the above on every push, the scale check included; the consumption check runs on demand against a registry version. Recorded benchmark observations live in [docs/benchmarks.md](docs/benchmarks.md).
 
 ## Current boundaries
 
